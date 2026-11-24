@@ -37,7 +37,12 @@ jobs:
         run: flutter pub get
 
       - name: Analyse statique
-        run: flutter analyze
+        run: |
+          set +e
+          flutter analyze 2>&1 | tee /tmp/analyze.txt
+          code=${PIPESTATUS[0]}
+          grep -E "^\s*(error|warning|info) " /tmp/analyze.txt | head -30 | while read -r l; do echo "::error title=flutter analyze::$l"; done
+          exit $code
 
       - name: Tests
         run: flutter test

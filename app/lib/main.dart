@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/auth/auth_gate.dart';
@@ -13,10 +13,6 @@ Future<void> main() async {
 
   runApp(const SocialGrowApp());
 }
-<<<<<<< HEAD
-
-=======
->>>>>>> e6e308b (Build authentication and modular app foundation)
 
 class SocialGrowApp extends StatelessWidget {
   const SocialGrowApp({super.key});
