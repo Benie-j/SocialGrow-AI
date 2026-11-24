@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../features/dashboard/presentation/dashboard_page.dart';
 import '../../features/placeholder/presentation/placeholder_page.dart';
