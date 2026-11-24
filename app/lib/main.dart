@@ -1,7 +1,6 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import 'package:material_ui/material_ui.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
