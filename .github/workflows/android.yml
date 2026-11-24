@@ -1,3 +1,4 @@
+
 name: Build Android APK
 
 on:
@@ -12,6 +13,7 @@ jobs:
     defaults:
       run:
         working-directory: app
+
     steps:
       - uses: actions/checkout@v4
 
@@ -31,7 +33,7 @@ jobs:
             flutter create --platforms=android --org com.socialgrow --project-name socialgrow_ai .
           fi
 
-      - name: Dépendances
+      - name: Installer les dépendances
         run: flutter pub get
 
       - name: Analyse statique
@@ -40,12 +42,24 @@ jobs:
       - name: Tests
         run: flutter test
 
-      - name: Compiler l'APK release
-        run: flutter build apk --release
+      - name: Analyser la taille de l'application
+        run: flutter build apk --release --analyze-size
 
-      - name: Publier l'APK
+      - name: Générer les APK séparés par architecture
+        run: flutter build apk --release --split-per-abi
+
+      - name: Afficher les tailles
+        run: |
+          echo "=== Tailles des APK ==="
+          find build/app/outputs/flutter-apk -maxdepth 1 -name "*.apk" -exec ls -lh {} \;
+          echo "=== Rapports d'analyse de taille ==="
+          find build -type f -iname "*analysis*.json" -print
+
+      - name: Publier les APK et rapports
         uses: actions/upload-artifact@v4
         with:
-          name: socialgrow-ai-apk
-          path: app/build/app/outputs/flutter-apk/app-release.apk
+          name: socialgrow-ai-optimized-diagnostic
+          path: |
+            app/build/app/outputs/flutter-apk/*.apk
+            app/build/**/*.json
           if-no-files-found: error
