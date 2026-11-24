@@ -1,17 +1,23 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../data/publication_settings_repository.dart';
 import '../../features/dashboard/presentation/dashboard_page.dart';
 import '../../features/placeholder/presentation/placeholder_page.dart';
+import '../../features/settings/presentation/settings_page.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({
     super.key,
     required this.onSignOut,
     this.userEmail,
+    this.settingsRepository,
   });
 
   final Future<void> Function() onSignOut;
   final String? userEmail;
+
+  /// Injectable pour les tests ; par défaut, Supabase.
+  final PublicationSettingsRepository? settingsRepository;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -67,11 +73,7 @@ class _AppShellState extends State<AppShell> {
         description: 'Retrouve ici les performances de ta Page.',
         icon: Icons.insights,
       ),
-      const PlaceholderPage(
-        title: 'Paramètres',
-        description: 'Configure ton espace et tes préférences.',
-        icon: Icons.settings,
-      ),
+      SettingsPage(repository: widget.settingsRepository),
     ];
 
     return Scaffold(
