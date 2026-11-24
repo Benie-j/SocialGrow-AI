@@ -43,7 +43,7 @@ jobs:
         run: flutter test
 
       - name: Analyser la taille de l'application
-        run: flutter build apk --release --analyze-size --target-platform android-arm32
+        run: flutter build apk --release --analyze-size --target-platform android-arm
 
       - name: Générer les APK séparés par architecture
         run: flutter build apk --release --split-per-abi
