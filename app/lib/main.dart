@@ -1,5 +1,17 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: 'https://ismatpttxrsbqtravgkr.supabase.co',
+    publishableKey: 'TA_CLE_PUBLISHABLE',
+  );
+
+  runApp(const SocialGrowApp());
+}
 void main() => runApp(const SocialGrowApp());
 
 class SocialGrowApp extends StatelessWidget {
