@@ -10,7 +10,7 @@ Future<void> main() async {
 
   runApp(const SocialGrowApp());
 }
-void main() => runApp(const SocialGrowApp());
+
 
 class SocialGrowApp extends StatelessWidget {
   const SocialGrowApp({super.key});
