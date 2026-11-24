@@ -6,7 +6,7 @@ Future<void> main() async {
 
   await Supabase.initialize(
     url: 'https://ismatpttxrsbqtravgkr.supabase.co',
-    publishableKey: 'TA_CLE_PUBLISHABLE',
+    publishableKey: 'sb_publishable_Rdyho9ktQQDVFHiEZ3wwBQ_xFi1ST82',
   );
 
   runApp(const SocialGrowApp());
