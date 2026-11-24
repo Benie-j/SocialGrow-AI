@@ -48,7 +48,14 @@ jobs:
         run: flutter test
 
       - name: Compiler les APK release (un par architecture)
-        run: flutter build apk --release --split-per-abi
+        run: |
+          set +e
+          flutter build apk --release --split-per-abi 2>&1 | tee /tmp/build.txt
+          code=${PIPESTATUS[0]}
+          if [ "$code" -ne 0 ]; then
+            grep -nE "error|Error|FAILURE|What went wrong|Execution failed|Caused by|e: " /tmp/build.txt | head -20 | cut -c1-400 | while read -r l; do echo "::error title=flutter build::$l"; done
+          fi
+          exit $code
 
       - name: Afficher les tailles
         run: ls -lh build/app/outputs/flutter-apk/*.apk
