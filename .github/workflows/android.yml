@@ -36,6 +36,10 @@ jobs:
       - name: Configurer le deep link Android
         run: python ../scripts/configure_android_deeplink.py android/app/src/main/AndroidManifest.xml
 
+      - name: Vérifier le manifeste Android
+        run: |
+          grep -E "INTERNET|flutter_deeplinking|intent-filter|android:scheme|android:host|launchMode|android:exported" android/app/src/main/AndroidManifest.xml | sed 's/^ *//' | while read -r l; do echo "::notice title=manifest::$l"; done
+
       - name: Installer les dépendances
         run: flutter pub get
 
