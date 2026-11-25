@@ -6,6 +6,7 @@ import '../../data/workspace_overview.dart';
 import '../../data/workspace_repository.dart';
 import '../../features/dashboard/presentation/dashboard_page.dart';
 import '../../features/preview/presentation/feature_preview_page.dart';
+import '../../features/studio/presentation/studio_page.dart';
 import '../../features/settings/presentation/settings_page.dart';
 import '../theme/sg_palette.dart';
 import '../widgets/sg_background.dart';
@@ -133,28 +134,7 @@ class _AppShellState extends State<AppShell> {
         onNavigate: _select,
         onSignOut: widget.onSignOut,
       ),
-      const FeaturePreviewPage(
-        title: 'Studio IA',
-        description: 'Ton atelier de création pour ta Page Facebook.',
-        icon: Icons.auto_awesome,
-        highlights: [
-          FeatureHighlight(
-            icon: Icons.lightbulb_outline,
-            title: 'Idées de publications',
-            text: 'Des angles adaptés à ton audience et à ta stratégie.',
-          ),
-          FeatureHighlight(
-            icon: Icons.edit_note,
-            title: 'Textes prêts à publier',
-            text: 'Une rédaction guidée qui respecte ton ton de marque.',
-          ),
-          FeatureHighlight(
-            icon: Icons.view_carousel_outlined,
-            title: 'Variantes',
-            text: 'Plusieurs versions d’un même post pour choisir la meilleure.',
-          ),
-        ],
-      ),
+      const StudioPage(),
       const FeaturePreviewPage(
         title: 'Agenda',
         description: 'Organise et retrouve tes prochaines publications.',
