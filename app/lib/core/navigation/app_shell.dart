@@ -2,9 +2,11 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../data/facebook_connection.dart';
 import '../../data/publication_settings_repository.dart';
+import '../../data/agenda_repository.dart';
 import '../../data/workspace_overview.dart';
 import '../../data/workspace_repository.dart';
 import '../../features/dashboard/presentation/dashboard_page.dart';
+import '../../features/agenda/presentation/agenda_page.dart';
 import '../../features/preview/presentation/feature_preview_page.dart';
 import '../../features/studio/presentation/studio_page.dart';
 import '../../features/settings/presentation/settings_page.dart';
@@ -22,6 +24,7 @@ class AppShell extends StatefulWidget {
     this.workspaceRepository,
     this.facebookRepository,
     this.studioPage,
+    this.agendaRepository,
   });
 
   final Future<void> Function() onSignOut;
@@ -29,6 +32,9 @@ class AppShell extends StatefulWidget {
   final String? userName;
   final String? userAvatarUrl;
   final Widget? studioPage;
+
+  /// Données de l'agenda ; sans dépôt (tests), l'agenda s'affiche vide.
+  final AgendaRepository? agendaRepository;
   /// Injectable pour les tests ; par défaut, Supabase.
   final PublicationSettingsRepository? settingsRepository;
 
@@ -136,27 +142,9 @@ class _AppShellState extends State<AppShell> {
         onSignOut: widget.onSignOut,
       ),
       widget.studioPage ?? const StudioPage(),
-      const FeaturePreviewPage(
-        title: 'Agenda',
-        description: 'Organise et retrouve tes prochaines publications.',
-        icon: Icons.calendar_month,
-        highlights: [
-          FeatureHighlight(
-            icon: Icons.edit_calendar_outlined,
-            title: 'Vue de la semaine',
-            text: 'Toutes tes publications planifiées d’un coup d’œil.',
-          ),
-          FeatureHighlight(
-            icon: Icons.schedule,
-            title: 'Créneaux alignés',
-            text: 'Des horaires cohérents avec tes réglages de publication.',
-          ),
-          FeatureHighlight(
-            icon: Icons.swap_horiz,
-            title: 'Reprogrammation simple',
-            text: 'Déplace une publication sans tout refaire.',
-          ),
-        ],
+      AgendaPage(
+        repository: widget.agendaRepository,
+        onOpenStudio: () => _select(1),
       ),
       const FeaturePreviewPage(
         title: 'Statistiques',

@@ -822,7 +822,7 @@ class _SpaceGrid extends StatelessWidget {
                 tint: p.accentWarm,
                 title: 'Agenda',
                 subtitle: 'Planifie tes posts.',
-                status: const SgPill(label: 'Bientôt'),
+                status: SgPill(label: 'Disponible', color: p.success),
                 onTap: navigate == null ? null : () => navigate(2),
               ),
             ],
