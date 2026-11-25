@@ -188,7 +188,7 @@ class _AgendaPageState extends State<AgendaPage> {
   }
 
   void _toast(String message) {
-    ScaffoldMessenger.of(this.context)
+    ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
   }
