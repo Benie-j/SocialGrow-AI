@@ -163,7 +163,9 @@ class _RescheduleSheetState extends State<_RescheduleSheet> {
                     selected: sameDay(day, _day),
                     onTap: () => _selectDay(day),
                     width: 56,
+                    padding: const EdgeInsets.symmetric(vertical: 6),
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
@@ -285,6 +287,7 @@ class _PickChip extends StatelessWidget {
     this.enabled = true,
     this.preferred = false,
     this.width,
+    this.padding = const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
   });
 
   final bool selected;
@@ -293,6 +296,7 @@ class _PickChip extends StatelessWidget {
   final VoidCallback? onTap;
   final Widget child;
   final double? width;
+  final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
@@ -327,7 +331,7 @@ class _PickChip extends StatelessWidget {
         onTap: onTap,
         child: Container(
           width: width,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: padding,
           alignment: width == null ? null : Alignment.center,
           child: DefaultTextStyle.merge(
             style: TextStyle(color: foreground),
