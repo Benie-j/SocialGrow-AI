@@ -51,6 +51,12 @@ Future<void> _pumpShell(WidgetTester tester, WorkspaceRepository repo) async {
         onSignOut: () async {},
         userName: 'Bénie Jean',
         workspaceRepository: repo,
+studioPage: const Column(
+  children: [
+    Text('Ce qui arrive'),
+    Text('Idées de publications'),
+  ],
+),
       ),
     ),
   );
