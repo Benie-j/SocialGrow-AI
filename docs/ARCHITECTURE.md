@@ -49,3 +49,15 @@ Les données privées des identifiants Facebook doivent rester accessibles uniqu
 - Jours de publication : 1 = lundi … 7 = dimanche.
 - Sections de Paramètres pas encore implémentées (affichées « Bientôt ») : Compte et profil, Connexion Facebook, Stratégie éditoriale (réglée dans Paramètres de publication), Groq, Notifications, Sécurité.
 
+
+## Convention Supabase : droits explicites (depuis 20261125090317)
+
+Le schéma `public` n'accorde plus aucun droit par défaut à `anon` ni `authenticated`.
+Toute migration qui crée une table ou une fonction doit, dans le même fichier :
+1. activer la RLS et créer ses politiques ;
+2. accorder explicitement les opérations nécessaires (`grant select, insert, ... to authenticated`) ;
+3. pour une fonction, accorder `execute` uniquement aux rôles concernés.
+
+`TRUNCATE`, `REFERENCES` et `TRIGGER` ne sont jamais accordés aux rôles clients.
+La création d'espaces de travail est limitée à 5 par utilisateur (constante `max_workspaces`
+dans `public.create_workspace`).
