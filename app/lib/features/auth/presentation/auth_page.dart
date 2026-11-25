@@ -30,7 +30,6 @@ class _AuthPageState extends State<AuthPage> {
       await _client.auth.signInWithOAuth(
         OAuthProvider.facebook,
         redirectTo: 'socialgrowai://login-callback',
-        scopes: 'email,public_profile,pages_show_list,pages_read_engagement,pages_manage_posts',
         queryParams: {
           'config_id': '1678260010520297',
         },
