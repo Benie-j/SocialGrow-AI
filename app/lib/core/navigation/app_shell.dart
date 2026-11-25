@@ -28,7 +28,7 @@ class AppShell extends StatefulWidget {
   final String? userEmail;
   final String? userName;
   final String? userAvatarUrl;
-
+  final Widget? studioPage;
   /// Injectable pour les tests ; par défaut, Supabase.
   final PublicationSettingsRepository? settingsRepository;
 
@@ -135,7 +135,7 @@ class _AppShellState extends State<AppShell> {
         onNavigate: _select,
         onSignOut: widget.onSignOut,
       ),
-      const StudioPage(),
+      widget.studioPage ?? const StudioPage(),
       const FeaturePreviewPage(
         title: 'Agenda',
         description: 'Organise et retrouve tes prochaines publications.',
