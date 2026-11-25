@@ -204,7 +204,7 @@ class _StudioPageState extends State<StudioPage> {
     ValueChanged<String?> onChanged,
   ) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       isExpanded: true,
       decoration: InputDecoration(
         labelText: label,
