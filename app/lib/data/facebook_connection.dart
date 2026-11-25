@@ -80,14 +80,16 @@ abstract class FacebookConnectionRepository {
   Future<List<FacebookPage>> listAvailablePages();
 
   /// Connecte une Page (Edge Function facebook-connect-page). Le serveur
-  /// revérifie auprès de Meta que l'utilisateur gère bien cette Page.
+  /// revérifie auprès de Meta que l'utilisateur gère bien cette Page. Une seule
+  /// Page est active par espace : connecter celle-ci remplace la précédente.
   Future<ConnectedFacebookPage> connectPage({
     required String workspaceId,
     required FacebookPage page,
   });
 
-  /// Déconnecte une Page (désactivation et suppression de son jeton).
-  Future<void> disconnect(String pageId);
+  /// Déconnecte la Page active de l'espace (Edge Function
+  /// facebook-disconnect-page : désactivation et suppression de son jeton).
+  Future<void> disconnect(String workspaceId);
 
   /// Relance la connexion Facebook pour obtenir une nouvelle autorisation.
   Future<void> reauthorize();
@@ -168,11 +170,8 @@ class SupabaseFacebookConnectionRepository
   }
 
   @override
-  Future<void> disconnect(String pageId) async {
-    await _client.rpc(
-      'disconnect_facebook_page',
-      params: {'_page_id': pageId},
-    );
+  Future<void> disconnect(String workspaceId) async {
+    await _invoke('facebook-disconnect-page', {'workspace_id': workspaceId});
   }
 
   @override

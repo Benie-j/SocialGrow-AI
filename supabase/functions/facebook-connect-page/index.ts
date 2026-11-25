@@ -3,11 +3,11 @@
 // Sortie  : { page: { id, meta_page_id, page_name } }
 //
 // La Page n'est jamais acceptée telle que le client la décrit : on la retrouve
-// chez Meta parmi les Pages que cet utilisateur gère, puis on stocke son jeton
-// chiffré côté serveur. Le droit de connecter (propriétaire ou administrateur)
-// est revérifié en base par public.connect_facebook_page.
+// chez Meta parmi les Pages que cet utilisateur gère. Son jeton est chiffré par
+// la base (public.encrypt_facebook_token, clé dans le Vault) puis enregistré par
+// public.connect_facebook_page, qui revérifie le rôle (owner, admin ou editor)
+// et ne garde qu'une Page active par espace.
 import { requireUser, serviceClient } from "../_shared/auth.ts";
-import { encryptToken } from "../_shared/crypto.ts";
 import { canPublish, fetchManagedPages } from "../_shared/graph.ts";
 import { HttpError, handle, json } from "../_shared/http.ts";
 
@@ -40,17 +40,23 @@ Deno.serve(handle(async (req, body) => {
     );
   }
 
-  const ciphertext = await encryptToken(page.accessToken);
+  const db = serviceClient();
 
-  const { data, error } = await serviceClient().rpc("connect_facebook_page", {
-    _workspace_id: workspaceId,
-    _user_id: user.id,
-    _meta_page_id: page.id,
-    _page_name: page.name,
-    _category: page.category,
-    _picture_url: page.pictureUrl,
-    _token_ciphertext: ciphertext,
-    _token_expires_at: null,
+  const encrypted = await db.rpc("encrypt_facebook_token", { _plain: page.accessToken });
+  if (encrypted.error || typeof encrypted.data !== "string") {
+    console.error("encrypt_facebook_token a échoué", encrypted.error?.code);
+    throw new HttpError(500, "encryption_failed", "La connexion de la Page a échoué.");
+  }
+
+  const { data, error } = await db.rpc("connect_facebook_page", {
+    p_workspace_id: workspaceId,
+    p_user_id: user.id,
+    p_meta_page_id: page.id,
+    p_page_name: page.name,
+    p_category: page.category,
+    p_picture_url: page.pictureUrl,
+    p_token_ciphertext: encrypted.data,
+    p_token_expires_at: null,
   });
 
   if (error) {
@@ -58,7 +64,7 @@ Deno.serve(handle(async (req, body) => {
       throw new HttpError(
         403,
         "forbidden",
-        "Seuls les propriétaires et administrateurs peuvent connecter une Page.",
+        "Tu n'as pas le droit de connecter une Page à cet espace.",
       );
     }
     console.error("connect_facebook_page a échoué", error.code);

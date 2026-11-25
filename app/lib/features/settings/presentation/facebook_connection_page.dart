@@ -22,7 +22,7 @@ class FacebookConnectionPage extends StatefulWidget {
   final FacebookConnectionRepository repository;
   final String workspaceId;
 
-  /// owner, admin, editor ou viewer : seuls owner et admin peuvent connecter.
+  /// owner, admin, editor ou viewer : seuls les trois premiers peuvent connecter.
   final String role;
 
   /// Appelé après une connexion ou une déconnexion (pour actualiser l'accueil).
@@ -42,13 +42,16 @@ class _FacebookConnectionPageState extends State<FacebookConnectionPage>
   String? _availableError;
   List<FacebookPage>? _available;
 
-  /// Identifiant Meta de la Page en cours de connexion, ou id de la Page en
-  /// cours de déconnexion.
+  /// Identifiant Meta de la Page en cours de connexion, ou id interne de la
+  /// Page en cours de déconnexion.
   String? _busyId;
 
   StreamSubscription<void>? _sessionSub;
 
-  bool get _canManage => widget.role == 'owner' || widget.role == 'admin';
+  bool get _canManage =>
+      widget.role == 'owner' ||
+      widget.role == 'admin' ||
+      widget.role == 'editor';
 
   @override
   void initState() {
@@ -199,7 +202,7 @@ class _FacebookConnectionPageState extends State<FacebookConnectionPage>
 
     setState(() => _busyId = page.id);
     try {
-      await widget.repository.disconnect(page.id);
+      await widget.repository.disconnect(widget.workspaceId);
       if (!mounted) return;
       _toast('« ${page.name} » est déconnectée.');
       await _loadConnected();
@@ -227,7 +230,16 @@ class _FacebookConnectionPageState extends State<FacebookConnectionPage>
           const SizedBox(height: 12),
           _buildConnected(p, theme),
           const SizedBox(height: 28),
-          Text('Ajouter une Page', style: theme.textTheme.titleLarge),
+          Text(
+            _connected.isEmpty ? 'Choisir une Page' : 'Changer de Page',
+            style: theme.textTheme.titleLarge,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Une seule Page est active à la fois : en connecter une autre '
+            'remplace la précédente.',
+            style: theme.textTheme.bodySmall?.copyWith(color: p.textSecondary),
+          ),
           const SizedBox(height: 12),
           _buildAvailable(p, theme),
         ],
@@ -305,8 +317,8 @@ class _FacebookConnectionPageState extends State<FacebookConnectionPage>
   Widget _buildAvailable(SgPalette p, ThemeData theme) {
     if (!_canManage) {
       return const _Notice(
-        text: 'Seuls les propriétaires et les administrateurs de l’espace '
-            'peuvent connecter ou déconnecter une Page.',
+        text: 'Seuls les propriétaires, les administrateurs et les éditeurs '
+            'de l’espace peuvent connecter ou déconnecter une Page.',
       );
     }
 

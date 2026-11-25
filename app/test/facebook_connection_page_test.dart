@@ -66,14 +66,17 @@ class FakeFacebookRepository implements FacebookConnectionRepository {
       name: page.name,
       category: page.category,
     );
-    connected.add(created);
+    // Une seule Page active par espace : la nouvelle remplace la précédente.
+    connected
+      ..clear()
+      ..add(created);
     return created;
   }
 
   @override
-  Future<void> disconnect(String pageId) async {
-    disconnectCalls.add(pageId);
-    connected.removeWhere((c) => c.id == pageId);
+  Future<void> disconnect(String workspaceId) async {
+    disconnectCalls.add(workspaceId);
+    connected.clear();
   }
 
   @override
@@ -146,7 +149,17 @@ void main() {
     expect(find.widgetWithText(FilledButton, 'Connecter'), findsOneWidget);
   });
 
-  testWidgets('un éditeur ne peut ni connecter ni déconnecter',
+  testWidgets('un éditeur peut connecter une Page', (tester) async {
+    final repository = FakeFacebookRepository();
+    await _pumpPage(tester, repository, role: 'editor');
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Connecter').first);
+    await tester.pumpAndSettle();
+
+    expect(repository.connectCalls, ['1001']);
+  });
+
+  testWidgets('connecter une autre Page remplace la précédente',
       (tester) async {
     final repository = FakeFacebookRepository(
       connected: [
@@ -157,7 +170,29 @@ void main() {
         ),
       ],
     );
-    await _pumpPage(tester, repository, role: 'editor');
+    await _pumpPage(tester, repository);
+
+    // Seule la Page non connectée est proposée.
+    expect(find.text('Atelier Kofi'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Connecter'));
+    await tester.pumpAndSettle();
+
+    expect(repository.connected.map((c) => c.metaPageId), ['1002']);
+    expect(find.text('Connectée'), findsOneWidget);
+  });
+
+  testWidgets('un lecteur ne peut ni connecter ni déconnecter',
+      (tester) async {
+    final repository = FakeFacebookRepository(
+      connected: [
+        const ConnectedFacebookPage(
+          id: 'row-1',
+          metaPageId: '1001',
+          name: 'Boutique Awa',
+        ),
+      ],
+    );
+    await _pumpPage(tester, repository, role: 'viewer');
 
     expect(find.text('Boutique Awa'), findsOneWidget);
     expect(find.textContaining('Seuls les propriétaires'), findsOneWidget);
@@ -231,7 +266,7 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Déconnecter'));
     await tester.pumpAndSettle();
 
-    expect(repository.disconnectCalls, ['row-1']);
+    expect(repository.disconnectCalls, ['ws-1']);
     expect(changed, 1);
     expect(find.text('Aucune Page n’est connectée pour le moment.'),
         findsOneWidget);

@@ -64,19 +64,21 @@ dans `public.create_workspace`).
 
 ## Connexion Facebook (état)
 
-**Principe : le client ne fait que lire `facebook_pages`.** Il n'a plus aucun
-droit `INSERT`/`UPDATE`/`DELETE` dessus (migration `20261125120000`). Sinon un
-éditeur aurait pu y insérer une fausse Page.
+**Principe : le client ne fait que lire `facebook_pages`.** Il n'a aucun droit
+`INSERT`/`UPDATE`/`DELETE` dessus (migrations `20261125094759` et
+`20261125102617`). Sinon un éditeur aurait pu y insérer une fausse Page.
 
 - `supabase/functions/facebook-list-pages` : liste les Pages que l'utilisateur
   gère chez Meta (`GET /me/accounts`). Ne renvoie jamais de jeton de Page.
 - `supabase/functions/facebook-connect-page` : retrouve la Page chez Meta parmi
-  celles que l'utilisateur gère, chiffre son jeton (AES-256-GCM) et appelle
-  `public.connect_facebook_page` (réservée à `service_role`) qui écrit la Page
-  et le jeton (`private.facebook_credentials`) en une seule transaction.
-  Seuls les rôles `owner` et `admin` peuvent connecter une Page.
-- `public.disconnect_facebook_page(uuid)` : `owner` et `admin`. Désactive la
-  Page (historique conservé) et supprime son jeton.
+  celles que l'utilisateur gère, fait chiffrer son jeton par la base
+  (`public.encrypt_facebook_token`, clé dans le Vault Supabase, jamais dans Git)
+  puis appelle `public.connect_facebook_page`.
+- `supabase/functions/facebook-disconnect-page` : appelle
+  `public.disconnect_facebook_page` (Page désactivée, jeton supprimé).
+- Les fonctions SQL ne sont appelables que par `service_role` et revérifient le
+  rôle (`owner`, `admin` ou `editor`). **Une seule Page est active par espace** :
+  connecter une autre Page remplace la précédente.
 - Flutter : `data/facebook_connection.dart` (dépôt), écran
   `features/settings/presentation/facebook_connection_page.dart`
   (Réglages → Connexion Facebook). L'accueil affiche le nom de la Page connectée.
@@ -85,13 +87,8 @@ Le jeton Facebook de l'utilisateur (`session.providerToken`) n'existe qu'après
 une connexion Facebook : l'écran propose « Autoriser l'accès à mes Pages » s'il
 est absent. Il est envoyé aux Edge Functions, jamais stocké.
 
-### Déploiement (à faire une fois, hors Git)
+### Déploiement des fonctions
 
-1. Appliquer la migration `20261125120000_facebook_pages_server_only_writes.sql`.
-2. Générer une clé de chiffrement : `openssl rand -base64 32`.
-3. La déposer dans les secrets Supabase (jamais dans Git) :
-   `supabase secrets set TOKEN_ENCRYPTION_KEY=<clé>`
-   (facultatif : `META_GRAPH_VERSION`, par défaut `v23.0`).
-4. Déployer : `supabase functions deploy facebook-list-pages facebook-connect-page`.
-   `SUPABASE_URL`, `SUPABASE_ANON_KEY` et `SUPABASE_SERVICE_ROLE_KEY` sont
-   fournis automatiquement par Supabase aux fonctions.
+`supabase functions deploy facebook-list-pages facebook-connect-page facebook-disconnect-page`.
+`SUPABASE_URL`, `SUPABASE_ANON_KEY` et `SUPABASE_SERVICE_ROLE_KEY` sont fournis
+automatiquement par Supabase. Facultatif : secret `META_GRAPH_VERSION` (défaut `v23.0`).
