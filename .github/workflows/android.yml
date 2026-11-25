@@ -33,6 +33,9 @@ jobs:
             flutter create --platforms=android --org com.socialgrow --project-name socialgrow_ai .
           fi
 
+      - name: Configurer le deep link Android
+        run: python ../scripts/configure_android_deeplink.py android/app/src/main/AndroidManifest.xml
+
       - name: Installer les dépendances
         run: flutter pub get
 
