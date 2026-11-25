@@ -1,6 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../data/publication_settings_repository.dart';
+import '../../data/workspace_overview.dart';
+import '../../data/workspace_repository.dart';
 import '../../features/dashboard/presentation/dashboard_page.dart';
 import '../../features/preview/presentation/feature_preview_page.dart';
 import '../../features/settings/presentation/settings_page.dart';
@@ -15,6 +17,7 @@ class AppShell extends StatefulWidget {
     this.userName,
     this.userAvatarUrl,
     this.settingsRepository,
+    this.workspaceRepository,
   });
 
   final Future<void> Function() onSignOut;
@@ -24,6 +27,9 @@ class AppShell extends StatefulWidget {
 
   /// Injectable pour les tests ; par défaut, Supabase.
   final PublicationSettingsRepository? settingsRepository;
+
+  /// Injectable pour les tests ; sans dépôt, aucun espace n'est chargé.
+  final WorkspaceRepository? workspaceRepository;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -43,6 +49,37 @@ class _Destination {
 
 class _AppShellState extends State<AppShell> {
   int _index = 0;
+  WorkspaceState _workspace = const WorkspaceState.idle();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.workspaceRepository != null) {
+      _workspace = const WorkspaceState.loading();
+      _fetchWorkspace();
+    }
+  }
+
+  Future<void> _fetchWorkspace() async {
+    final repository = widget.workspaceRepository;
+    if (repository == null) return;
+
+    try {
+      final overview = await repository.load();
+      if (!mounted) return;
+      setState(() => _workspace = WorkspaceState.ready(overview));
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _workspace = WorkspaceState.failed(describeError(error)));
+    }
+  }
+
+  /// Rechargement après une erreur : on repasse d'abord par l'état « chargement ».
+  Future<void> _retryWorkspace() async {
+    if (widget.workspaceRepository == null) return;
+    setState(() => _workspace = const WorkspaceState.loading());
+    await _fetchWorkspace();
+  }
 
   static const _destinations = [
     _Destination(
@@ -84,6 +121,9 @@ class _AppShellState extends State<AppShell> {
         userEmail: widget.userEmail,
         userName: widget.userName,
         userAvatarUrl: widget.userAvatarUrl,
+        workspace: _workspace,
+        onRetryWorkspace: _retryWorkspace,
+        onRefresh: _fetchWorkspace,
         onNavigate: _select,
         onSignOut: widget.onSignOut,
       ),

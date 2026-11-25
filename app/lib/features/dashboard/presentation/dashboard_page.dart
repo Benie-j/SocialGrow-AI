@@ -5,6 +5,7 @@ import '../../../core/widgets/glass_panel.dart';
 import '../../../core/widgets/growth_plant.dart';
 import '../../../core/widgets/reveal.dart';
 import '../../../core/widgets/sg_pill.dart';
+import '../../../data/workspace_overview.dart';
 
 class _Step {
   const _Step({
@@ -30,6 +31,9 @@ class DashboardPage extends StatelessWidget {
     this.userAvatarUrl,
     this.onNavigate,
     this.onSignOut,
+    this.workspace = const WorkspaceState.idle(),
+    this.onRetryWorkspace,
+    this.onRefresh,
   });
 
   final String? userEmail;
@@ -38,16 +42,37 @@ class DashboardPage extends StatelessWidget {
   final ValueChanged<int>? onNavigate;
   final Future<void> Function()? onSignOut;
 
-  static const _steps = [
-    _Step(
-      title: 'Compte connecté',
-      hint: 'Tu es connecté avec Facebook.',
-      done: true,
-    ),
-    _Step(
-      title: 'Connecter ta Page Facebook',
-      hint: 'Choisis la Page à faire grandir.',
-    ),
+  /// État réel de l'espace de travail (profil, rôle, Pages connectées).
+  final WorkspaceState workspace;
+  final VoidCallback? onRetryWorkspace;
+
+  /// Tirer pour actualiser ; absent = pas d'actualisation.
+  final Future<void> Function()? onRefresh;
+
+  /// Seule la connexion d'une Page se déduit des données : les autres étapes
+  /// restent à faire tant qu'aucune donnée ne prouve le contraire.
+  static List<_Step> _stepsFor(WorkspaceOverview? overview) {
+    final pageDone = overview?.hasConnectedPage ?? false;
+    final pages = overview?.activePageCount ?? 0;
+
+    return [
+      const _Step(
+        title: 'Compte connecté',
+        hint: 'Tu es connecté avec Facebook.',
+        done: true,
+      ),
+      _Step(
+        title: 'Connecter ta Page Facebook',
+        hint: pageDone
+            ? (pages > 1 ? '$pages Pages connectées.' : '1 Page connectée.')
+            : 'Choisis la Page à faire grandir.',
+        done: pageDone,
+      ),
+      ..._remainingSteps,
+    ];
+  }
+
+  static const _remainingSteps = [
     _Step(
       title: 'Définir ta stratégie éditoriale',
       hint: 'Fréquence, horaires, public et contenus.',
@@ -83,14 +108,19 @@ class DashboardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = SgPalette.of(context);
     final theme = Theme.of(context);
-    final name = firstNameFrom(userName, userEmail);
+    final overview = workspace.overview;
+    final steps = _stepsFor(overview);
+    final name = firstNameFrom(overview?.displayName ?? userName, userEmail);
+    final avatarUrl = overview?.avatarUrl ?? userAvatarUrl;
     final bottom = MediaQuery.paddingOf(context).bottom;
     final seed = (name ?? userEmail ?? '').trim();
     final initial = seed.isEmpty
         ? '•'
         : String.fromCharCode(seed.runes.first).toUpperCase();
+    final refresh = onRefresh;
 
-    return ListView(
+    final list = ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: EdgeInsets.fromLTRB(20, 16, 20, bottom + 100),
       children: [
         SgReveal(
@@ -98,16 +128,23 @@ class DashboardPage extends StatelessWidget {
             greeting: greetingFor(DateTime.now().hour),
             name: name,
             initial: initial,
-            avatarUrl: userAvatarUrl,
+            avatarUrl: avatarUrl,
             onSignOut: onSignOut,
           ),
         ),
-        const SizedBox(height: 22),
-        SgReveal(order: 1, child: _GardenCard(steps: _steps)),
+        if (workspace.status != WorkspaceStatus.idle) ...[
+          const SizedBox(height: 14),
+          SgReveal(
+            order: 1,
+            child: _WorkspaceBar(state: workspace, onRetry: onRetryWorkspace),
+          ),
+        ],
+        const SizedBox(height: 18),
+        SgReveal(order: 1, child: _GardenCard(steps: steps)),
         const SizedBox(height: 18),
         SgReveal(
           order: 2,
-          child: _Timeline(steps: _steps, onNavigate: onNavigate),
+          child: _Timeline(steps: steps, onNavigate: onNavigate),
         ),
         const SizedBox(height: 22),
         SgReveal(
@@ -120,7 +157,13 @@ class DashboardPage extends StatelessWidget {
           child: Text('Ton espace', style: theme.textTheme.titleLarge),
         ),
         const SizedBox(height: 14),
-        SgReveal(order: 4, child: _SpaceGrid(onNavigate: onNavigate)),
+        SgReveal(
+          order: 4,
+          child: _SpaceGrid(
+            onNavigate: onNavigate,
+            pageConnected: overview?.hasConnectedPage ?? false,
+          ),
+        ),
         const SizedBox(height: 24),
         Text(
           'Les fonctions Facebook et Groq seront activées dans les '
@@ -129,6 +172,85 @@ class DashboardPage extends StatelessWidget {
           style: theme.textTheme.bodySmall?.copyWith(color: p.textSecondary),
         ),
       ],
+    );
+
+    if (refresh == null) return list;
+    return RefreshIndicator(onRefresh: refresh, child: list);
+  }
+}
+
+/// Espace de travail réel : nom, rôle, ou état de chargement / d'erreur.
+class _WorkspaceBar extends StatelessWidget {
+  const _WorkspaceBar({required this.state, required this.onRetry});
+
+  final WorkspaceState state;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = SgPalette.of(context);
+    final theme = Theme.of(context);
+    final overview = state.overview;
+
+    final Widget leading;
+    final Widget body;
+    Widget? trailing;
+
+    if (state.status == WorkspaceStatus.loading) {
+      leading = SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(strokeWidth: 2.4, color: p.accent),
+      );
+      body = Text(
+        'Chargement de ton espace…',
+        style: theme.textTheme.bodyMedium?.copyWith(color: p.textSecondary),
+      );
+    } else if (state.status == WorkspaceStatus.failed) {
+      leading = Icon(Icons.cloud_off_outlined, color: p.accentWarm);
+      body = Text(
+        state.message ?? 'Impossible de charger ton espace.',
+        style: theme.textTheme.bodySmall?.copyWith(height: 1.35),
+      );
+      final retry = onRetry;
+      if (retry != null) {
+        trailing = TextButton(onPressed: retry, child: const Text('Réessayer'));
+      }
+    } else {
+      leading = Icon(Icons.workspaces_outline, color: p.accent);
+      body = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Espace de travail',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: p.textSecondary,
+            ),
+          ),
+          Text(
+            overview?.workspaceName ?? '',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleMedium,
+          ),
+        ],
+      );
+      if (overview != null) {
+        trailing = SgPill(label: overview.roleLabel, color: p.accent);
+      }
+    }
+
+    return GlassPanel(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      radius: 18,
+      child: Row(
+        children: [
+          leading,
+          const SizedBox(width: 12),
+          Expanded(child: body),
+          if (trailing != null) ...[const SizedBox(width: 8), trailing],
+        ],
+      ),
     );
   }
 }
@@ -649,9 +771,10 @@ class _StudioCard extends StatelessWidget {
 
 /// Grille décalée : deux colonnes de hauteurs alternées.
 class _SpaceGrid extends StatelessWidget {
-  const _SpaceGrid({required this.onNavigate});
+  const _SpaceGrid({required this.onNavigate, required this.pageConnected});
 
   final ValueChanged<int>? onNavigate;
+  final bool pageConnected;
 
   static const double _tall = 214;
   static const double _short = 170;
@@ -672,8 +795,12 @@ class _SpaceGrid extends StatelessWidget {
                 icon: Icons.facebook,
                 tint: p.accentCool,
                 title: 'Page Facebook',
-                subtitle: 'Connecte ta Page pour publier.',
-                status: SgPill(label: 'À connecter', color: p.accentWarm),
+                subtitle: pageConnected
+                    ? 'Ta Page est prête à publier.'
+                    : 'Connecte ta Page pour publier.',
+                status: pageConnected
+                    ? SgPill(label: 'Connectée', color: p.success)
+                    : SgPill(label: 'À connecter', color: p.accentWarm),
               ),
               const SizedBox(height: 12),
               _SpaceTile(

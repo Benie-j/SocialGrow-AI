@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../data/workspace_repository.dart';
 import '../../features/auth/presentation/auth_page.dart';
 import '../navigation/app_shell.dart';
 
@@ -55,6 +56,7 @@ class _AuthGateState extends State<AuthGate> {
     }
 
     return AppShell(
+      workspaceRepository: SupabaseWorkspaceRepository(_client),
       userEmail: _client.auth.currentUser?.email,
       userName: _metadata('full_name') ?? _metadata('name'),
       userAvatarUrl: _metadata('avatar_url') ?? _metadata('picture'),
