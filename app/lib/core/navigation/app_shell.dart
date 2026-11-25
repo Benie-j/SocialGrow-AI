@@ -21,6 +21,7 @@ class AppShell extends StatefulWidget {
     this.settingsRepository,
     this.workspaceRepository,
     this.facebookRepository,
+    this.studioPage,
   });
 
   final Future<void> Function() onSignOut;
