@@ -1,3 +1,5 @@
+import 'facebook_connection.dart';
+
 /// Vue d'ensemble réelle de l'espace de travail de l'utilisateur connecté.
 class WorkspaceOverview {
   const WorkspaceOverview({
@@ -7,6 +9,7 @@ class WorkspaceOverview {
     required this.activePageCount,
     this.displayName,
     this.avatarUrl,
+    this.connectedPage,
   });
 
   final String workspaceId;
@@ -22,7 +25,14 @@ class WorkspaceOverview {
   final String? displayName;
   final String? avatarUrl;
 
+  /// Page active connectée à l'espace, si elle existe.
+  final ConnectedFacebookPage? connectedPage;
+
   bool get hasConnectedPage => activePageCount > 0;
+
+  /// Seuls ces rôles peuvent connecter ou déconnecter une Page.
+  bool get canManagePage =>
+      role == 'owner' || role == 'admin' || role == 'editor';
 
   String get roleLabel {
     switch (role) {

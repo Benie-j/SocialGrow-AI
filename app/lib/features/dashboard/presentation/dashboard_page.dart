@@ -54,6 +54,7 @@ class DashboardPage extends StatelessWidget {
   static List<_Step> _stepsFor(WorkspaceOverview? overview) {
     final pageDone = overview?.hasConnectedPage ?? false;
     final pages = overview?.activePageCount ?? 0;
+    final pageName = overview?.connectedPage?.name;
 
     return [
       const _Step(
@@ -64,9 +65,12 @@ class DashboardPage extends StatelessWidget {
       _Step(
         title: 'Connecter ta Page Facebook',
         hint: pageDone
-            ? (pages > 1 ? '$pages Pages connectées.' : '1 Page connectée.')
+            ? (pageName != null
+                ? '$pageName est connectée.'
+                : (pages > 1 ? '$pages Pages connectées.' : '1 Page connectée.'))
             : 'Choisis la Page à faire grandir.',
         done: pageDone,
+        tab: 4,
       ),
       ..._remainingSteps,
     ];
@@ -162,6 +166,7 @@ class DashboardPage extends StatelessWidget {
           child: _SpaceGrid(
             onNavigate: onNavigate,
             pageConnected: overview?.hasConnectedPage ?? false,
+            pageName: overview?.connectedPage?.name,
           ),
         ),
         const SizedBox(height: 24),
@@ -771,10 +776,17 @@ class _StudioCard extends StatelessWidget {
 
 /// Grille décalée : deux colonnes de hauteurs alternées.
 class _SpaceGrid extends StatelessWidget {
-  const _SpaceGrid({required this.onNavigate, required this.pageConnected});
+  const _SpaceGrid({
+    required this.onNavigate,
+    required this.pageConnected,
+    required this.pageName,
+  });
 
   final ValueChanged<int>? onNavigate;
   final bool pageConnected;
+
+  /// Nom de la Page connectée, s'il est connu.
+  final String? pageName;
 
   static const double _tall = 214;
   static const double _short = 170;
@@ -796,11 +808,12 @@ class _SpaceGrid extends StatelessWidget {
                 tint: p.accentCool,
                 title: 'Page Facebook',
                 subtitle: pageConnected
-                    ? 'Ta Page est prête à publier.'
+                    ? (pageName ?? 'Ta Page est prête à publier.')
                     : 'Connecte ta Page pour publier.',
                 status: pageConnected
                     ? SgPill(label: 'Connectée', color: p.success)
                     : SgPill(label: 'À connecter', color: p.accentWarm),
+                onTap: navigate == null ? null : () => navigate(4),
               ),
               const SizedBox(height: 12),
               _SpaceTile(

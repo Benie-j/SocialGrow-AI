@@ -5,7 +5,10 @@ import '../../../core/widgets/glass_panel.dart';
 import '../../../core/widgets/page_header.dart';
 import '../../../core/widgets/reveal.dart';
 import '../../../core/widgets/sg_pill.dart';
+import '../../../data/facebook_connection.dart';
 import '../../../data/publication_settings_repository.dart';
+import '../../../data/workspace_overview.dart';
+import 'facebook_connection_page.dart';
 import 'publication_settings_page.dart';
 
 class _Entry {
@@ -22,6 +25,8 @@ class _Entry {
   final bool available;
 }
 
+const _facebookTitle = 'Connexion Facebook';
+
 const _entries = [
   _Entry(
     icon: Icons.person_outline,
@@ -30,7 +35,7 @@ const _entries = [
   ),
   _Entry(
     icon: Icons.link,
-    title: 'Connexion Facebook',
+    title: _facebookTitle,
     subtitle: 'Page à gérer et autorisations Meta',
   ),
   _Entry(
@@ -70,7 +75,14 @@ const _entries = [
 ];
 
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key, this.repository, this.onSignOut});
+  const SettingsPage({
+    super.key,
+    this.repository,
+    this.onSignOut,
+    this.workspace = const WorkspaceState.idle(),
+    this.facebookRepository,
+    this.onFacebookChanged,
+  });
 
   /// Injectable pour les tests ; par défaut, Supabase.
   final PublicationSettingsRepository? repository;
@@ -78,8 +90,62 @@ class SettingsPage extends StatelessWidget {
   /// Action de déconnexion ; le bouton n'apparaît que si elle est fournie.
   final Future<void> Function()? onSignOut;
 
+  /// Espace de travail réel (rôle, Page connectée) ; sert à l'écran Facebook.
+  final WorkspaceState workspace;
+
+  /// Sans dépôt, la rubrique « Connexion Facebook » reste « Bientôt ».
+  final FacebookConnectionRepository? facebookRepository;
+
+  /// Appelé après une connexion/déconnexion de Page (actualise l'accueil).
+  final Future<void> Function()? onFacebookChanged;
+
+  bool _isAvailable(_Entry entry) =>
+      entry.available ||
+      (entry.title == _facebookTitle && facebookRepository != null);
+
+  String _subtitleFor(_Entry entry) {
+    final page = workspace.overview?.connectedPage;
+    if (entry.title == _facebookTitle && page != null) {
+      return 'Page connectée : ${page.name}';
+    }
+    return entry.subtitle;
+  }
+
+  void _openFacebook(BuildContext context) {
+    final repository = facebookRepository;
+    if (repository == null) return;
+
+    final overview = workspace.overview;
+    if (overview == null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Ton espace est en cours de chargement. Réessaie dans un instant.',
+            ),
+          ),
+        );
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => FacebookConnectionPage(
+          repository: repository,
+          workspaceId: overview.workspaceId,
+          canEdit: overview.canManagePage,
+          connectedPage: overview.connectedPage,
+          onChanged: onFacebookChanged,
+        ),
+      ),
+    );
+  }
+
   void _open(BuildContext context, _Entry entry) {
-    if (entry.title == 'Paramètres de publication') {
+    if (entry.title == _facebookTitle) {
+      _openFacebook(context);
+    } else if (entry.title == 'Paramètres de publication') {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => PublicationSettingsPage(repository: repository),
@@ -116,7 +182,9 @@ class SettingsPage extends StatelessWidget {
             order: 1 + (i < 4 ? i : 4),
             child: _EntryTile(
               entry: _entries[i],
-              onTap: _entries[i].available
+              enabled: _isAvailable(_entries[i]),
+              subtitle: _subtitleFor(_entries[i]),
+              onTap: _isAvailable(_entries[i])
                   ? () => _open(context, _entries[i])
                   : null,
             ),
@@ -153,17 +221,22 @@ class SettingsPage extends StatelessWidget {
 }
 
 class _EntryTile extends StatelessWidget {
-  const _EntryTile({required this.entry, required this.onTap});
+  const _EntryTile({
+    required this.entry,
+    required this.enabled,
+    required this.subtitle,
+    required this.onTap,
+  });
 
   final _Entry entry;
+  final bool enabled;
+  final String subtitle;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final p = SgPalette.of(context);
     final theme = Theme.of(context);
-    final enabled = entry.available;
-
     return Opacity(
       opacity: enabled ? 1 : 0.62,
       child: GlassPanel(
@@ -190,7 +263,7 @@ class _EntryTile extends StatelessWidget {
                   Text(entry.title, style: theme.textTheme.titleMedium),
                   const SizedBox(height: 3),
                   Text(
-                    entry.subtitle,
+                    subtitle,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: p.textSecondary,
                       height: 1.35,

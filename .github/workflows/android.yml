@@ -8,6 +8,21 @@ on:
   workflow_dispatch:
 
 jobs:
+  functions-tests:
+    name: Tests des Edge Functions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Vérification des types et tests
+        run: |
+          deno check supabase/functions/facebook-list-pages/index.ts supabase/functions/facebook-connect-page/index.ts
+          deno test -A supabase/functions/tests
+
   build:
     runs-on: ubuntu-latest
     defaults:

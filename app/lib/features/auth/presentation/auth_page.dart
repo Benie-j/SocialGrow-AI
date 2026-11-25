@@ -7,6 +7,7 @@ import '../../../core/widgets/reveal.dart';
 import '../../../core/widgets/sg_background.dart';
 import '../../../core/widgets/sg_gradient_button.dart';
 import '../../../core/widgets/sg_pill.dart';
+import '../../../data/facebook_oauth.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -34,13 +35,7 @@ class _AuthPageState extends State<AuthPage> {
     setState(() => _isLoading = true);
 
     try {
-      await _client.auth.signInWithOAuth(
-        OAuthProvider.facebook,
-        redirectTo: 'socialgrowai://login-callback',
-        queryParams: {
-          'config_id': '1678260010520297',
-        },
-      );
+      await signInWithFacebook(_client);
     } on AuthException catch (error) {
       _showMessage(error.message);
     } catch (error) {

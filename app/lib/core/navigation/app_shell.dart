@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../data/facebook_connection.dart';
 import '../../data/publication_settings_repository.dart';
 import '../../data/workspace_overview.dart';
 import '../../data/workspace_repository.dart';
@@ -18,6 +19,7 @@ class AppShell extends StatefulWidget {
     this.userAvatarUrl,
     this.settingsRepository,
     this.workspaceRepository,
+    this.facebookRepository,
   });
 
   final Future<void> Function() onSignOut;
@@ -30,6 +32,9 @@ class AppShell extends StatefulWidget {
 
   /// Injectable pour les tests ; sans dépôt, aucun espace n'est chargé.
   final WorkspaceRepository? workspaceRepository;
+
+  /// Injectable pour les tests ; sans dépôt, la rubrique Facebook reste fermée.
+  final FacebookConnectionRepository? facebookRepository;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -196,6 +201,9 @@ class _AppShellState extends State<AppShell> {
       SettingsPage(
         repository: widget.settingsRepository,
         onSignOut: widget.onSignOut,
+        workspace: _workspace,
+        facebookRepository: widget.facebookRepository,
+        onFacebookChanged: _fetchWorkspace,
       ),
     ];
 

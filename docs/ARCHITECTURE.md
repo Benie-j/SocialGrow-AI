@@ -36,7 +36,7 @@ Les données privées des identifiants Facebook doivent rester accessibles uniqu
 ## Prochaines intégrations
 
 1. Lecture réelle du profil et de l'espace de travail.
-2. Connexion OAuth Meta et sélection de Page Facebook.
+2. ~~Connexion OAuth Meta et sélection de Page Facebook.~~ Fait : voir « Connexion d'une Page Facebook ».
 3. Génération de contenus avec Groq via une Edge Function.
 4. Gestion des publications et du calendrier.
 5. Statistiques et notifications.
@@ -47,7 +47,7 @@ Les données privées des identifiants Facebook doivent rester accessibles uniqu
 - Multi-utilisateurs : les réglages appartiennent à un espace de travail. Seuls les rôles propriétaire, admin et éditeur peuvent écrire (RLS) ; un lecteur voit les réglages en lecture seule. Si un utilisateur appartient à plusieurs espaces, le plus ancien est utilisé (sélecteur d’espace à prévoir).
 - `frequency_per_week` n’est pas un réglage : elle est recalculée (publications par jour × jours) à l’enregistrement.
 - Jours de publication : 1 = lundi … 7 = dimanche.
-- Sections de Paramètres pas encore implémentées (affichées « Bientôt ») : Compte et profil, Connexion Facebook, Stratégie éditoriale (réglée dans Paramètres de publication), Groq, Notifications, Sécurité.
+- Sections de Paramètres pas encore implémentées (affichées « Bientôt ») : Compte et profil, Stratégie éditoriale (réglée dans Paramètres de publication), Groq, Notifications, Sécurité.
 
 
 ## Convention Supabase : droits explicites (depuis 20261125090317)
@@ -61,3 +61,43 @@ Toute migration qui crée une table ou une fonction doit, dans le même fichier 
 `TRUNCATE`, `REFERENCES` et `TRIGGER` ne sont jamais accordés aux rôles clients.
 La création d'espaces de travail est limitée à 5 par utilisateur (constante `max_workspaces`
 dans `public.create_workspace`).
+
+
+## Connexion d'une Page Facebook
+
+### Règle de sécurité
+Le client (l'application) **ne peut que lire** `public.facebook_pages`. Il n'a ni `INSERT`, ni `UPDATE`,
+ni `DELETE` (migration `20261125102617_facebook_pages_backend_only_writes`). Toute connexion ou
+déconnexion passe par les Edge Functions ci-dessous, qui appellent deux fonctions SQL
+(`connect_facebook_page`, `disconnect_facebook_page`) exécutables **uniquement par `service_role`**.
+Elles revérifient le rôle (propriétaire, admin ou éditeur) et gardent une seule Page active par espace.
+
+### Edge Functions (`supabase/functions/`)
+| Fonction | Entrée | Sortie |
+| --- | --- | --- |
+| `facebook-list-pages` | `{ workspace_id, provider_token }` | `{ pages: [{ id, name, category, picture_url }] }` |
+| `facebook-connect-page` | `{ action: "connect", workspace_id, provider_token, meta_page_id }` | `{ page, long_lived }` |
+| `facebook-connect-page` | `{ action: "disconnect", workspace_id }` | `{ disconnected }` |
+
+- `provider_token` est le jeton Facebook de la session Supabase (`session.providerToken`). Il n'est jamais stocké.
+- La Page choisie est **revérifiée auprès de Facebook** (`/me/accounts`) : une Page qui n'appartient pas à l'utilisateur est refusée.
+- Le jeton de Page est chiffré en AES-256-GCM puis stocké dans `private.facebook_credentials` ; il n'est jamais renvoyé à l'application.
+- Clé de chiffrement : secret `TOKEN_ENCRYPTION_KEY` s'il existe, sinon dérivée de la clé service_role.
+  Changer l'une ou l'autre rend les jetons déjà stockés illisibles (il faudra reconnecter la Page).
+- Version Graph API : `v25.0` par défaut, secret `GRAPH_API_VERSION` pour la changer.
+- **Connexion durable** : définir les secrets Supabase `FACEBOOK_APP_ID` et `FACEBOOK_APP_SECRET`. Les fonctions
+  échangent alors le jeton utilisateur contre un jeton longue durée, et les jetons de Page n'expirent pas.
+  Sans ces secrets, la connexion fonctionne mais expire au bout de quelques heures (`long_lived: false`, signalé dans l'application).
+- Codes d'erreur : `unauthenticated`, `forbidden`, `facebook_token_missing`, `facebook_token_invalid`,
+  `facebook_permission_missing`, `page_not_found`, `facebook_unavailable`, `invalid_body`.
+  Les quatre premiers côté Facebook demandent à l'utilisateur de se reconnecter.
+
+### Application
+- Écran : Réglages > Connexion Facebook (`features/settings/presentation/facebook_connection_page.dart`).
+- Données : `lib/data/facebook_connection.dart` (appelle les Edge Functions) et `facebook_oauth.dart` (connexion/reconnexion Facebook).
+- `WorkspaceOverview.connectedPage` alimente le tableau de bord (étape du parcours, tuile « Page Facebook »).
+- La session Facebook (`providerToken`) n'est pas renouvelable : si elle manque ou a expiré, l'écran propose « Se reconnecter avec Facebook ».
+
+### Tests
+- Edge Functions : `deno test -A supabase/functions/tests` (Facebook et Supabase simulés, sans réseau). Exécutés par la CI.
+- Application : `app/test/facebook_connection_test.dart`.
