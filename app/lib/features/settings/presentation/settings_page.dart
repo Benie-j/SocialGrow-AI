@@ -10,6 +10,7 @@ import '../../../data/publication_settings_repository.dart';
 import '../../../data/workspace_overview.dart';
 import 'editorial_strategy_page.dart';
 import 'facebook_connection_page.dart';
+import 'groq_settings_page.dart';
 import 'publication_settings_page.dart';
 
 class _Entry {
@@ -53,7 +54,8 @@ const _entries = [
   _Entry(
     icon: Icons.auto_awesome_outlined,
     title: 'Paramètres Groq',
-    subtitle: 'Modèle et options de génération',
+    subtitle: 'Modèles, créativité et consommation du mois',
+    available: true,
   ),
   _Entry(
     icon: Icons.notifications_none,
@@ -131,6 +133,12 @@ class SettingsPage extends StatelessWidget {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => EditorialStrategyPage(settingsRepository: repository),
+        ),
+      );
+    } else if (entry.title == 'Paramètres Groq') {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => GroqSettingsPage(settingsRepository: repository),
         ),
       );
     } else if (entry.title == 'À propos') {

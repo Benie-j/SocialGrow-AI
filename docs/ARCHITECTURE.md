@@ -47,7 +47,7 @@ Les données privées des identifiants Facebook doivent rester accessibles uniqu
 - Multi-utilisateurs : les réglages appartiennent à un espace de travail. Seuls les rôles propriétaire, admin et éditeur peuvent écrire (RLS) ; un lecteur voit les réglages en lecture seule. Si un utilisateur appartient à plusieurs espaces, le plus ancien est utilisé (sélecteur d’espace à prévoir).
 - `frequency_per_week` n’est pas un réglage : elle est recalculée (publications par jour × jours) à l’enregistrement.
 - Jours de publication : 1 = lundi … 7 = dimanche.
-- Sections de Paramètres pas encore implémentées (affichées « Bientôt ») : Compte et profil, Groq, Notifications, Sécurité.
+- Sections de Paramètres pas encore implémentées (affichées « Bientôt ») : Compte et profil, Notifications, Sécurité.
 
 
 ## Convention Supabase : droits explicites (depuis 20261125090317)
@@ -101,3 +101,11 @@ automatiquement par Supabase. Facultatif : secret `META_GRAPH_VERSION` (défaut 
 - « Semaine type » : `planWeek` répartit les publications de la semaine (publications par jour × jours choisis) entre les piliers (quotas au plus fort reste, ordre alterné). Calcul pur, testé dans `test/editorial_strategy_test.dart`.
 - « Boussole » : 4 étapes réellement vérifiées (activité, phrase de marque, public cible, 3 piliers actifs).
 - À brancher : le générateur Groq doit relire cette ligne (piliers, voix, formules à bannir) pour construire ses consignes.
+
+## Paramètres Groq (état)
+- Écran : Paramètres > Paramètres Groq (`features/settings/presentation/groq_settings_page.dart`).
+- Données : table `public.groq_settings` (une ligne par espace, migration `20261125124158`), mêmes règles RLS que `publication_settings`. Champs : modèle final, modèle de brouillon, créativité (0 à 15, température = valeur / 10), longueur maximale en tokens, garde-fou mensuel de générations.
+- Les identifiants de modèles sont libres (validés par motif) : la liste de Groq évolue, les exemples proposés ne sont que des suggestions.
+- « Consommation du mois » : calculée depuis `ai_generation_logs` (générations, tokens, taux de réussite, durée moyenne). Le compteur reste à zéro tant qu'aucune Edge Function de génération n'écrit dans cette table.
+- La clé Groq n'est jamais saisie ni stockée dans l'app ou dans la base : secret Supabase lu uniquement par l'Edge Function de génération.
+- À brancher : l'Edge Function de génération doit lire `groq_settings` (modèles, température, tokens), refuser au-delà du garde-fou mensuel et journaliser chaque appel dans `ai_generation_logs`.
