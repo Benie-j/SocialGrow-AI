@@ -2,12 +2,21 @@
 
 ## Application Flutter
 
-- `app/lib/main.dart` : initialisation et thème.
+- `app/lib/main.dart` : initialisation et thèmes (sombre par défaut).
 - `app/lib/core/auth/` : contrôle de session.
-- `app/lib/core/navigation/` : navigation principale.
-- `app/lib/features/auth/` : inscription, connexion et récupération.
-- `app/lib/features/dashboard/` : tableau de bord.
-- `app/lib/features/placeholder/` : écrans en attente de développement.
+- `app/lib/core/navigation/` : navigation principale (barre flottante à 5 rubriques).
+- `app/lib/core/theme/` : identité visuelle « Aurore » (`SgPalette`, `AppTheme`).
+- `app/lib/core/widgets/` : composants partagés (fond animé, panneau verre, anneau de progression, pastille, bouton dégradé, apparition échelonnée, en-tête de page).
+- `app/lib/features/auth/` : connexion Facebook (OAuth Supabase).
+- `app/lib/features/dashboard/` : tableau de bord (parcours de lancement, Studio IA, espace de travail).
+- `app/lib/features/preview/` : rubriques pas encore ouvertes (Studio, Agenda, Statistiques), avec aperçu de ce qui arrive.
+- `app/lib/features/settings/` : paramètres et déconnexion.
+
+### Conventions d'interface
+- Les couleurs viennent de `SgPalette.of(context)` ; ne pas coder de couleurs en dur dans les écrans.
+- Le dégradé signature est `SgPalette.brand` ; il est conçu pour du texte blanc.
+- Le fond animé (`AuroraBackground`) respecte la préférence système « réduire les animations ».
+- Le tableau de bord n'affiche aucune donnée fictive : seul l'état réel (compte connecté) est marqué comme terminé.
 
 ## Backend Supabase
 

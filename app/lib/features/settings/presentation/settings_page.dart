@@ -1,5 +1,10 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../../core/theme/sg_palette.dart';
+import '../../../core/widgets/glass_panel.dart';
+import '../../../core/widgets/page_header.dart';
+import '../../../core/widgets/reveal.dart';
+import '../../../core/widgets/sg_pill.dart';
 import '../../../data/publication_settings_repository.dart';
 import 'publication_settings_page.dart';
 
@@ -65,10 +70,13 @@ const _entries = [
 ];
 
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key, this.repository});
+  const SettingsPage({super.key, this.repository, this.onSignOut});
 
   /// Injectable pour les tests ; par défaut, Supabase.
   final PublicationSettingsRepository? repository;
+
+  /// Action de déconnexion ; le bouton n'apparaît que si elle est fournie.
+  final Future<void> Function()? onSignOut;
 
   void _open(BuildContext context, _Entry entry) {
     if (entry.title == 'Paramètres de publication') {
@@ -88,24 +96,117 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = SgPalette.of(context);
+    final theme = Theme.of(context);
+    final bottom = MediaQuery.paddingOf(context).bottom;
+    final signOut = onSignOut;
+
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.fromLTRB(20, 16, 20, bottom + 28),
       children: [
-        for (final entry in _entries)
-          Card(
-            margin: const EdgeInsets.only(bottom: 10),
-            child: ListTile(
-              enabled: entry.available,
-              leading: Icon(entry.icon),
-              title: Text(entry.title),
-              subtitle: Text(entry.subtitle),
-              trailing: entry.available
-                  ? const Icon(Icons.chevron_right)
-                  : const Text('Bientôt'),
-              onTap: entry.available ? () => _open(context, entry) : null,
+        const SgReveal(
+          child: SgPageHeader(
+            title: 'Paramètres',
+            subtitle: 'Personnalise ton espace SocialGrow.',
+          ),
+        ),
+        const SizedBox(height: 22),
+        for (var i = 0; i < _entries.length; i++) ...[
+          SgReveal(
+            order: 1 + (i < 4 ? i : 4),
+            child: _EntryTile(
+              entry: _entries[i],
+              onTap: _entries[i].available
+                  ? () => _open(context, _entries[i])
+                  : null,
             ),
           ),
+          const SizedBox(height: 10),
+        ],
+        if (signOut != null) ...[
+          const SizedBox(height: 14),
+          OutlinedButton.icon(
+            onPressed: () {
+              signOut();
+            },
+            icon: const Icon(Icons.logout_rounded),
+            label: const Text('Se déconnecter'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(52),
+              foregroundColor: p.textPrimary,
+              side: BorderSide(color: p.glassBorder),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 18),
+        Text(
+          'SocialGrow AI • version 0.1.0',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodySmall?.copyWith(color: p.textSecondary),
+        ),
       ],
+    );
+  }
+}
+
+class _EntryTile extends StatelessWidget {
+  const _EntryTile({required this.entry, required this.onTap});
+
+  final _Entry entry;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = SgPalette.of(context);
+    final theme = Theme.of(context);
+    final enabled = entry.available;
+
+    return Opacity(
+      opacity: enabled ? 1 : 0.62,
+      child: GlassPanel(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        radius: 22,
+        highlight: enabled && entry.title == 'Paramètres de publication',
+        onTap: onTap,
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: p.accent.withValues(alpha: enabled ? 0.18 : 0.10),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(entry.icon, color: p.accent),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(entry.title, style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 3),
+                  Text(
+                    entry.subtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: p.textSecondary,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (enabled)
+              Icon(Icons.chevron_right, color: p.textSecondary)
+            else
+              const SgPill(label: 'Bientôt'),
+          ],
+        ),
+      ),
     );
   }
 }

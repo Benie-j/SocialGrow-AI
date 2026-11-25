@@ -19,44 +19,19 @@ class _AuthGateState extends State<AuthGate> {
   Session? _session;
   StreamSubscription<AuthState>? _subscription;
 
-  String _lastEvent = 'Initialisation';
-  String _diagnostic = 'Vérification de la session...';
-  String? _lastError;
-
   @override
   void initState() {
     super.initState();
 
     _session = _client.auth.currentSession;
 
-    _diagnostic = _session == null
-        ? 'Aucune session trouvée au démarrage.'
-        : 'Session existante récupérée au démarrage.';
-
     _subscription = _client.auth.onAuthStateChange.listen(
       (data) {
         if (!mounted) return;
-
-        setState(() {
-          _lastEvent = data.event.name;
-          _session = data.session;
-          _lastError = null;
-
-          if (data.session != null) {
-            _diagnostic = 'Session Supabase reçue.';
-          } else {
-            _diagnostic = 'Événement reçu sans session.';
-          }
-        });
+        setState(() => _session = data.session);
       },
-      onError: (Object error, StackTrace stackTrace) {
-        if (!mounted) return;
-
-        setState(() {
-          _lastError = error.runtimeType.toString();
-          _diagnostic = 'Erreur pendant l’écoute des événements Auth.';
-        });
-      },
+      // En cas d'erreur d'écoute, l'état courant est conservé.
+      onError: (Object error, StackTrace stackTrace) {},
     );
   }
 
@@ -66,60 +41,23 @@ class _AuthGateState extends State<AuthGate> {
     super.dispose();
   }
 
-  Widget _diagnosticPanel() {
-    return Card(
-      margin: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Diagnostic de connexion',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            Text('Dernier événement : $_lastEvent'),
-            const SizedBox(height: 6),
-            Text(
-              'Session : ${_session == null ? "ABSENTE" : "PRÉSENTE"}',
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Utilisateur : ${_client.auth.currentUser == null ? "ABSENT" : "PRÉSENT"}',
-            ),
-            const SizedBox(height: 6),
-            Text('État : $_diagnostic'),
-            if (_lastError != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                'Erreur : $_lastError',
-                style: const TextStyle(color: Colors.red),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
+  /// Valeur texte non vide des métadonnées du compte (nom, photo…).
+  String? _metadata(String key) {
+    final value = _client.auth.currentUser?.userMetadata?[key];
+    if (value is String && value.trim().isNotEmpty) return value.trim();
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
     if (_session == null) {
-      return Scaffold(
-        body: SafeArea(
-          child: Column(
-            children: [
-              const Expanded(child: AuthPage()),
-              _diagnosticPanel(),
-            ],
-          ),
-        ),
-      );
+      return const AuthPage();
     }
 
     return AppShell(
       userEmail: _client.auth.currentUser?.email,
+      userName: _metadata('full_name') ?? _metadata('name'),
+      userAvatarUrl: _metadata('avatar_url') ?? _metadata('picture'),
       onSignOut: () async {
         await _client.auth.signOut();
       },
