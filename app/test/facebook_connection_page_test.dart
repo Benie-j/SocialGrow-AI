@@ -332,9 +332,10 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: AppShell(
-          onSignOut: () async {},
-          workspaceRepository: _FixedWorkspaceRepository(),
-        ),
+  onSignOut: () async {},
+  workspaceRepository: _FixedWorkspaceRepository(),
+  studioPage: const SizedBox.shrink(),
+),
       ),
     );
     await tester.pump();
