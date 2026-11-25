@@ -653,8 +653,8 @@ class _SpaceGrid extends StatelessWidget {
 
   final ValueChanged<int>? onNavigate;
 
-  static const double _tall = 196;
-  static const double _short = 142;
+  static const double _tall = 214;
+  static const double _short = 170;
 
   @override
   Widget build(BuildContext context) {
