@@ -8,6 +8,7 @@ import '../../../core/widgets/sg_pill.dart';
 import '../../../data/facebook_connection.dart';
 import '../../../data/publication_settings_repository.dart';
 import '../../../data/workspace_overview.dart';
+import 'editorial_strategy_page.dart';
 import 'facebook_connection_page.dart';
 import 'publication_settings_page.dart';
 
@@ -46,8 +47,8 @@ const _entries = [
   _Entry(
     icon: Icons.lightbulb_outline,
     title: 'Stratégie éditoriale',
-    subtitle: 'Objectif et public se règlent dans « Paramètres de '
-        'publication »',
+    subtitle: 'Piliers de contenu, voix de marque et semaine type',
+    available: true,
   ),
   _Entry(
     icon: Icons.auto_awesome_outlined,
@@ -124,6 +125,12 @@ class SettingsPage extends StatelessWidget {
             role: space.role,
             onChanged: onWorkspaceChanged,
           ),
+        ),
+      );
+    } else if (entry.title == 'Stratégie éditoriale') {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => EditorialStrategyPage(settingsRepository: repository),
         ),
       );
     } else if (entry.title == 'À propos') {

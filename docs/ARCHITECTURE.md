@@ -47,7 +47,7 @@ Les données privées des identifiants Facebook doivent rester accessibles uniqu
 - Multi-utilisateurs : les réglages appartiennent à un espace de travail. Seuls les rôles propriétaire, admin et éditeur peuvent écrire (RLS) ; un lecteur voit les réglages en lecture seule. Si un utilisateur appartient à plusieurs espaces, le plus ancien est utilisé (sélecteur d’espace à prévoir).
 - `frequency_per_week` n’est pas un réglage : elle est recalculée (publications par jour × jours) à l’enregistrement.
 - Jours de publication : 1 = lundi … 7 = dimanche.
-- Sections de Paramètres pas encore implémentées (affichées « Bientôt ») : Compte et profil, Connexion Facebook, Stratégie éditoriale (réglée dans Paramètres de publication), Groq, Notifications, Sécurité.
+- Sections de Paramètres pas encore implémentées (affichées « Bientôt ») : Compte et profil, Groq, Notifications, Sécurité.
 
 
 ## Convention Supabase : droits explicites (depuis 20261125090317)
@@ -92,3 +92,12 @@ est absent. Il est envoyé aux Edge Functions, jamais stocké.
 `supabase functions deploy facebook-list-pages facebook-connect-page facebook-disconnect-page`.
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` et `SUPABASE_SERVICE_ROLE_KEY` sont fournis
 automatiquement par Supabase. Facultatif : secret `META_GRAPH_VERSION` (défaut `v23.0`).
+
+## Stratégie éditoriale (état)
+- Écran : Paramètres > Stratégie éditoriale (`features/settings/presentation/editorial_strategy_page.dart`).
+- Données : table `public.editorial_strategy` (une ligne par espace, migration `20261125122820`), lue et écrite par `lib/data/editorial_strategy_repository.dart`. Mêmes règles RLS que `publication_settings` (lecture : membres ; écriture : owner, admin, editor).
+- Contenu : description de l'activité, phrase de marque, 5 piliers pondérés de 0 à 10 (éduquer, inspirer, vendre, engager, coulisses), voix de marque (formel et chaleureux, de 0 à 10), formules à bannir (20 max).
+- L'objectif, le public cible et la fréquence restent dans `publication_settings` (sections A et F) : l'écran les lit sans les dupliquer.
+- « Semaine type » : `planWeek` répartit les publications de la semaine (publications par jour × jours choisis) entre les piliers (quotas au plus fort reste, ordre alterné). Calcul pur, testé dans `test/editorial_strategy_test.dart`.
+- « Boussole » : 4 étapes réellement vérifiées (activité, phrase de marque, public cible, 3 piliers actifs).
+- À brancher : le générateur Groq doit relire cette ligne (piliers, voix, formules à bannir) pour construire ses consignes.
