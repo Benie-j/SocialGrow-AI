@@ -14,6 +14,12 @@ Future<void> _pumpShell(WidgetTester tester) async {
       home: AppShell(
         onSignOut: () async {},
         userName: 'Bénie Jean',
+studioPage: const Column(
+  children: [
+    Text('Ce qui arrive'),
+    Text('Idées de publications'),
+  ],
+),
       ),
     ),
   );
