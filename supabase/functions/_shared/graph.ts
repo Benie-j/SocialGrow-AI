@@ -80,3 +80,36 @@ export async function fetchManagedPages(userToken: string): Promise<ManagedPage[
 
   return pages;
 }
+
+export interface GrantedPermissions {
+  granted: string[];
+  declined: string[];
+}
+
+/**
+ * Permissions réellement accordées par l'utilisateur à l'app (GET /me/permissions).
+ * Sert uniquement au diagnostic quand aucune Page n'est renvoyée. Renvoie null si
+ * Meta ne répond pas : le diagnostic reste alors partiel, sans bloquer le flux.
+ */
+export async function fetchGrantedPermissions(
+  userToken: string,
+): Promise<GrantedPermissions | null> {
+  try {
+    const url = new URL(`https://graph.facebook.com/${GRAPH_VERSION}/me/permissions`);
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${userToken}` } });
+    if (!res.ok) return null;
+    const payload = await res.json();
+    const rows: unknown[] = Array.isArray(payload?.data) ? payload.data : [];
+    const granted: string[] = [];
+    const declined: string[] = [];
+    for (const row of rows) {
+      const r = row as Record<string, unknown>;
+      if (typeof r.permission !== "string") continue;
+      if (r.status === "granted") granted.push(r.permission);
+      else if (r.status === "declined") declined.push(r.permission);
+    }
+    return { granted, declined };
+  } catch {
+    return null;
+  }
+}

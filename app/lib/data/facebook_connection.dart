@@ -138,10 +138,15 @@ class SupabaseFacebookConnectionRepository
         'Réponse inattendue du serveur.',
       );
     }
-    return [
+    final result = [
       for (final page in pages)
         if (page is Map<String, dynamic>) FacebookPage.fromMap(page),
     ];
+    if (result.isEmpty) {
+      final message = _emptyListMessage(data['diagnostic']);
+      if (message != null) throw FacebookConnectionException(message);
+    }
+    return result;
   }
 
   @override
@@ -215,5 +220,31 @@ class SupabaseFacebookConnectionRepository
 
 String? _text(Object? value) {
   if (value is String && value.trim().isNotEmpty) return value.trim();
+  return null;
+}
+
+/// Explique pourquoi Meta ne renvoie aucune Page, d'après le diagnostic du
+/// serveur. Renvoie null si le serveur n'en donne pas (ancienne version).
+String? _emptyListMessage(Object? diagnostic) {
+  if (diagnostic is! Map) return null;
+  final reason = diagnostic['reason'];
+  final granted = diagnostic['granted_permissions'];
+  final received = granted is List && granted.isNotEmpty
+      ? ' Permissions reçues : ${granted.join(', ')}.'
+      : '';
+  switch (reason) {
+    case 'missing_pages_permission':
+      return 'Facebook n’a pas accordé la permission de voir tes Pages '
+          '(pages_show_list).$received Autorise de nouveau l’accès et '
+          'accepte-la.';
+    case 'no_publish_rights':
+      return 'Facebook renvoie des Pages, mais aucune où tu peux publier. '
+          'Il te faut un accès complet ou la tâche « Créer du contenu » '
+          'sur la Page.$received';
+    case 'no_pages_shared':
+      return 'La permission est accordée, mais aucune Page n’a été partagée '
+          'avec l’app. Autorise de nouveau l’accès et coche ta Page dans la '
+          'fenêtre Facebook.$received';
+  }
   return null;
 }
