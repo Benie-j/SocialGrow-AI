@@ -4,9 +4,9 @@
 
 - `app/lib/main.dart` : initialisation et thèmes (sombre par défaut).
 - `app/lib/core/auth/` : contrôle de session.
-- `app/lib/core/navigation/` : navigation principale (barre flottante à 5 rubriques).
-- `app/lib/core/theme/` : identité visuelle « Aurore » (`SgPalette`, `AppTheme`).
-- `app/lib/core/widgets/` : composants partagés (fond animé, panneau verre, anneau de progression, pastille, bouton dégradé, apparition échelonnée, en-tête de page).
+- `app/lib/core/navigation/` : navigation principale (dock d'encre à 5 rubriques, pastille citron glissante).
+- `app/lib/core/theme/` : identité visuelle « Sève » (`SgPalette`, `AppTheme`) : papier chaud et encre en clair, nuit de serre en sombre, vert citron comme signal.
+- `app/lib/core/widgets/` : composants partagés (fond à trame de points, carte à trait d'encre, plante vivante `GrowthPlant`, pastille, bouton encre/citron, apparition échelonnée, en-tête de page).
 - `app/lib/features/auth/` : connexion Facebook (OAuth Supabase).
 - `app/lib/features/dashboard/` : tableau de bord (parcours de lancement, Studio IA, espace de travail).
 - `app/lib/features/preview/` : rubriques pas encore ouvertes (Studio, Agenda, Statistiques), avec aperçu de ce qui arrive.
@@ -14,8 +14,9 @@
 
 ### Conventions d'interface
 - Les couleurs viennent de `SgPalette.of(context)` ; ne pas coder de couleurs en dur dans les écrans.
-- Le dégradé signature est `SgPalette.brand` ; il est conçu pour du texte blanc.
-- Le fond animé (`AuroraBackground`) respecte la préférence système « réduire les animations ».
+- Le citron `SgPalette.lime` est toujours associé à de l'encre foncée (`SgPalette.inkDark`) pour le texte.
+- `GrowthPlant` pousse avec l'avancement du parcours et respecte la préférence système « réduire les animations ».
+- Le thème suit le réglage clair/sombre du téléphone.
 - Le tableau de bord n'affiche aucune donnée fictive : seul l'état réel (compte connecté) est marqué comme terminé.
 
 ## Backend Supabase

@@ -25,8 +25,8 @@ class SocialGrowApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      // Identité « Aurore » : sombre par défaut.
-      themeMode: ThemeMode.dark,
+      // Identité « Sève » : clair ou sombre selon le réglage du téléphone.
+      themeMode: ThemeMode.system,
       home: const AuthGate(),
     );
   }

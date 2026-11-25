@@ -2,8 +2,9 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/theme/sg_palette.dart';
-import '../../../core/widgets/aurora_background.dart';
+import '../../../core/widgets/growth_plant.dart';
 import '../../../core/widgets/reveal.dart';
+import '../../../core/widgets/sg_background.dart';
 import '../../../core/widgets/sg_gradient_button.dart';
 import '../../../core/widgets/sg_pill.dart';
 
@@ -59,54 +60,26 @@ class _AuthPageState extends State<AuthPage> {
     final p = SgPalette.of(context);
     final theme = Theme.of(context);
 
-    return AuroraBackground(
+    return SgBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 440),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    SgReveal(
-                      child: Center(
-                        child: Container(
-                          width: 128,
-                          height: 128,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(44),
-                            border: Border.all(
-                              color: p.accent.withValues(alpha: 0.28),
-                            ),
-                          ),
-                          child: Container(
-                            width: 94,
-                            height: 94,
-                            decoration: BoxDecoration(
-                              gradient: SgPalette.brand,
-                              borderRadius: BorderRadius.circular(32),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: p.accent.withValues(alpha: 0.6),
-                                  blurRadius: 44,
-                                  offset: const Offset(0, 14),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.auto_awesome,
-                              size: 46,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
+                    const Center(
+                      child: GrowthPlant(
+                        size: 270,
+                        growth: 1,
+                        duration: Duration(milliseconds: 2800),
                       ),
                     ),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 8),
                     SgReveal(
                       order: 1,
                       child: Center(
@@ -114,25 +87,41 @@ class _AuthPageState extends State<AuthPage> {
                           fit: BoxFit.scaleDown,
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
                                 'SocialGrow',
                                 style: theme.textTheme.headlineMedium?.copyWith(
-                                  fontSize: 38,
-                                  letterSpacing: -1.2,
+                                  fontSize: 44,
+                                  letterSpacing: -2.4,
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              ShaderMask(
-                                shaderCallback: (bounds) =>
-                                    SgPalette.brand.createShader(bounds),
-                                child: Text(
-                                  'AI',
-                                  style:
-                                      theme.textTheme.headlineMedium?.copyWith(
-                                    fontSize: 38,
-                                    letterSpacing: -1.2,
-                                    color: Colors.white,
+                              const SizedBox(width: 10),
+                              Transform.rotate(
+                                angle: -0.07,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: SgPalette.lime,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: p.isDark
+                                          ? SgPalette.lime
+                                          : SgPalette.inkDark,
+                                      width: 1.6,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'AI',
+                                    style:
+                                        theme.textTheme.headlineMedium?.copyWith(
+                                      fontSize: 40,
+                                      letterSpacing: -1.5,
+                                      color: SgPalette.inkDark,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -154,7 +143,7 @@ class _AuthPageState extends State<AuthPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 20),
                     SgReveal(
                       order: 3,
                       child: Wrap(
@@ -180,7 +169,7 @@ class _AuthPageState extends State<AuthPage> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 32),
                     SgReveal(
                       order: 4,
                       child: SgGradientButton(

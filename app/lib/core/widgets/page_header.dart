@@ -2,7 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../theme/sg_palette.dart';
 
-/// En-tête de page : grand titre, sous-titre et action optionnelle.
+/// En-tête de page : trait d'accent, grand titre, sous-titre et action.
 class SgPageHeader extends StatelessWidget {
   const SgPageHeader({
     super.key,
@@ -29,13 +29,27 @@ class SgPageHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: theme.textTheme.headlineMedium),
+              Container(
+                width: 34,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: SgPalette.lime,
+                  borderRadius: BorderRadius.circular(99),
+                  border: Border.all(color: p.ink.withValues(alpha: 0.9)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: theme.textTheme.headlineMedium?.copyWith(fontSize: 34),
+              ),
               if (sub != null) ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Text(
                   sub,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: p.textSecondary,
+                    height: 1.4,
                   ),
                 ),
               ],

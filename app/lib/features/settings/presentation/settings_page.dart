@@ -102,7 +102,7 @@ class SettingsPage extends StatelessWidget {
     final signOut = onSignOut;
 
     return ListView(
-      padding: EdgeInsets.fromLTRB(20, 16, 20, bottom + 28),
+      padding: EdgeInsets.fromLTRB(20, 16, 20, bottom + 100),
       children: [
         const SgReveal(
           child: SgPageHeader(

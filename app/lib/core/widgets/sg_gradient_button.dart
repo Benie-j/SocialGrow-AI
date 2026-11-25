@@ -2,7 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../theme/sg_palette.dart';
 
-/// Bouton principal à dégradé signature, avec halo lumineux.
+/// Bouton principal : encre et citron, avec une ombre franche décalée.
 class SgGradientButton extends StatelessWidget {
   const SgGradientButton({
     super.key,
@@ -20,20 +20,23 @@ class SgGradientButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = SgPalette.of(context);
-    final radius = BorderRadius.circular(20);
+    final radius = BorderRadius.circular(18);
+    final fill = p.isDark ? SgPalette.lime : SgPalette.inkDark;
+    final onFill = p.isDark ? SgPalette.inkDark : SgPalette.lime;
 
     return Opacity(
-      opacity: onPressed == null ? 0.65 : 1,
+      opacity: onPressed == null ? 0.7 : 1,
       child: Container(
         decoration: BoxDecoration(
-          gradient: SgPalette.brand,
+          color: fill,
           borderRadius: radius,
           boxShadow: [
-            BoxShadow(
-              color: p.accent.withValues(alpha: 0.45),
-              blurRadius: 28,
-              offset: const Offset(0, 12),
-            ),
+            if (!p.isDark)
+              BoxShadow(
+                color: p.accent,
+                offset: const Offset(4, 4),
+                blurRadius: 0,
+              ),
           ],
         ),
         child: Material(
@@ -48,24 +51,24 @@ class SgGradientButton extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (loading)
-                      const SizedBox(
+                      SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+                          strokeWidth: 2.4,
+                          color: onFill,
                         ),
                       )
                     else if (icon != null)
-                      Icon(icon, color: Colors.white),
+                      Icon(icon, color: onFill),
                     const SizedBox(width: 10),
                     Text(
                       label,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: onFill,
                         fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.2,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.2,
                       ),
                     ),
                   ],

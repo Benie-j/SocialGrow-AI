@@ -5,7 +5,7 @@ import '../../features/dashboard/presentation/dashboard_page.dart';
 import '../../features/preview/presentation/feature_preview_page.dart';
 import '../../features/settings/presentation/settings_page.dart';
 import '../theme/sg_palette.dart';
-import '../widgets/aurora_background.dart';
+import '../widgets/sg_background.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({
@@ -159,7 +159,7 @@ class _AppShellState extends State<AppShell> {
       ),
     ];
 
-    return AuroraBackground(
+    return SgBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
         extendBody: true,
@@ -167,7 +167,7 @@ class _AppShellState extends State<AppShell> {
           bottom: false,
           child: IndexedStack(index: _index, children: pages),
         ),
-        bottomNavigationBar: _FloatingNav(
+        bottomNavigationBar: _Dock(
           destinations: _destinations,
           selectedIndex: _index,
           onSelected: _select,
@@ -177,8 +177,10 @@ class _AppShellState extends State<AppShell> {
   }
 }
 
-class _FloatingNav extends StatelessWidget {
-  const _FloatingNav({
+/// Barre de navigation : un dock d'encre dont la pastille citron glisse
+/// d'une rubrique à l'autre.
+class _Dock extends StatelessWidget {
+  const _Dock({
     required this.destinations,
     required this.selectedIndex,
     required this.onSelected,
@@ -188,6 +190,9 @@ class _FloatingNav extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelected;
 
+  static const double _height = 68;
+  static const double _inset = 6;
+
   @override
   Widget build(BuildContext context) {
     final p = SgPalette.of(context);
@@ -195,33 +200,66 @@ class _FloatingNav extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
         child: Container(
-          padding: const EdgeInsets.all(6),
+          height: _height,
           decoration: BoxDecoration(
             color: p.navFill,
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: p.glassBorder),
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(
+              color: p.isDark ? p.glassBorder : SgPalette.inkDark,
+            ),
             boxShadow: [
               BoxShadow(
                 color: p.isDark
-                    ? const Color(0x66000000)
-                    : const Color(0x1F1B1F4B),
-                blurRadius: 30,
-                offset: const Offset(0, 12),
+                    ? const Color(0x99000000)
+                    : const Color(0x40111611),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
               ),
             ],
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              for (var i = 0; i < destinations.length; i++)
-                _NavItem(
-                  destination: destinations[i],
-                  selected: i == selectedIndex,
-                  onTap: () => onSelected(i),
-                ),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final itemWidth =
+                  (constraints.maxWidth - _inset * 2) / destinations.length;
+
+              return Stack(
+                children: [
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 360),
+                    curve: Curves.easeOutBack,
+                    left: _inset + itemWidth * selectedIndex,
+                    top: 8,
+                    width: itemWidth,
+                    height: _height - 18,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: SgPalette.lime,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: _inset),
+                      child: Row(
+                        children: [
+                          for (var i = 0; i < destinations.length; i++)
+                            Expanded(
+                              child: _DockItem(
+                                destination: destinations[i],
+                                selected: i == selectedIndex,
+                                onTap: () => onSelected(i),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -229,8 +267,8 @@ class _FloatingNav extends StatelessWidget {
   }
 }
 
-class _NavItem extends StatelessWidget {
-  const _NavItem({
+class _DockItem extends StatelessWidget {
+  const _DockItem({
     required this.destination,
     required this.selected,
     required this.onTap,
@@ -242,44 +280,35 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p = SgPalette.of(context);
-
     return Tooltip(
       message: destination.label,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 280),
-          curve: Curves.easeOutCubic,
-          padding: EdgeInsets.symmetric(
-            horizontal: selected ? 14 : 10,
-            vertical: 12,
-          ),
-          decoration: BoxDecoration(
-            gradient: selected ? SgPalette.brand : null,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Row(
+        child: Center(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 selected ? destination.selectedIcon : destination.icon,
-                size: 24,
-                color: selected ? Colors.white : p.textSecondary,
+                size: 23,
+                color: selected
+                    ? SgPalette.inkDark
+                    : const Color(0xFFAAB5A6),
               ),
               AnimatedSize(
-                duration: const Duration(milliseconds: 280),
+                duration: const Duration(milliseconds: 260),
                 curve: Curves.easeOutCubic,
                 child: selected
                     ? Padding(
-                        padding: const EdgeInsets.only(left: 8),
+                        padding: const EdgeInsets.only(top: 2),
                         child: Text(
                           destination.label,
                           style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
+                            color: SgPalette.inkDark,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.1,
                           ),
                         ),
                       )

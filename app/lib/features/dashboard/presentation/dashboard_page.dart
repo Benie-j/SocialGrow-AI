@@ -2,7 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../core/theme/sg_palette.dart';
 import '../../../core/widgets/glass_panel.dart';
-import '../../../core/widgets/progress_ring.dart';
+import '../../../core/widgets/growth_plant.dart';
 import '../../../core/widgets/reveal.dart';
 import '../../../core/widgets/sg_pill.dart';
 
@@ -91,7 +91,7 @@ class DashboardPage extends StatelessWidget {
         : String.fromCharCode(seed.runes.first).toUpperCase();
 
     return ListView(
-      padding: EdgeInsets.fromLTRB(20, 16, 20, bottom + 28),
+      padding: EdgeInsets.fromLTRB(20, 16, 20, bottom + 100),
       children: [
         SgReveal(
           child: _Header(
@@ -102,24 +102,26 @@ class DashboardPage extends StatelessWidget {
             onSignOut: onSignOut,
           ),
         ),
-        const SizedBox(height: 24),
-        SgReveal(
-          order: 1,
-          child: _LaunchPath(steps: _steps, onNavigate: onNavigate),
-        ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 22),
+        SgReveal(order: 1, child: _GardenCard(steps: _steps)),
+        const SizedBox(height: 18),
         SgReveal(
           order: 2,
-          child: _StudioCard(onOpen: () => onNavigate?.call(1)),
+          child: _Timeline(steps: _steps, onNavigate: onNavigate),
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: 22),
         SgReveal(
           order: 3,
+          child: _StudioCard(onOpen: () => onNavigate?.call(1)),
+        ),
+        const SizedBox(height: 30),
+        SgReveal(
+          order: 4,
           child: Text('Ton espace', style: theme.textTheme.titleLarge),
         ),
         const SizedBox(height: 14),
-        SgReveal(order: 3, child: _SpaceGrid(onNavigate: onNavigate)),
-        const SizedBox(height: 22),
+        SgReveal(order: 4, child: _SpaceGrid(onNavigate: onNavigate)),
+        const SizedBox(height: 24),
         Text(
           'Les fonctions Facebook et Groq seront activées dans les '
           'prochaines étapes.',
@@ -154,23 +156,44 @@ class _Header extends StatelessWidget {
     final signOut = onSignOut;
 
     final avatar = Container(
-      padding: const EdgeInsets.all(2.5),
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: SgPalette.brand,
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(
+        color: SgPalette.lime,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: p.ink, width: 1.6),
+        boxShadow: [
+          if (!p.isDark)
+            BoxShadow(
+              color: p.ink,
+              offset: const Offset(3, 3),
+              blurRadius: 0,
+            ),
+        ],
       ),
-      child: CircleAvatar(
-        radius: 22,
-        backgroundColor: p.background,
-        foregroundImage: url == null ? null : NetworkImage(url),
-        onForegroundImageError: url == null ? null : (error, stackTrace) {},
-        child: Text(
-          initial,
-          style: TextStyle(
-            color: p.textPrimary,
-            fontWeight: FontWeight.w800,
-            fontSize: 18,
-          ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Center(
+              child: Text(
+                initial,
+                style: const TextStyle(
+                  color: SgPalette.inkDark,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 24,
+                ),
+              ),
+            ),
+            if (url != null)
+              Image.network(
+                url,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox.shrink(),
+              ),
+          ],
         ),
       ),
     );
@@ -183,20 +206,28 @@ class _Header extends StatelessWidget {
             children: [
               Text(
                 greeting,
-                style: theme.textTheme.bodyLarge?.copyWith(
+                style: theme.textTheme.titleMedium?.copyWith(
                   color: p.textSecondary,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 2),
-              Text(name ?? 'Bienvenue', style: theme.textTheme.headlineMedium),
+              Text(
+                name ?? 'Bienvenue',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.headlineMedium?.copyWith(fontSize: 40),
+              ),
             ],
           ),
         ),
+        const SizedBox(width: 12),
         if (signOut == null)
           avatar
         else
           PopupMenuButton<String>(
             tooltip: 'Mon compte',
+            padding: EdgeInsets.zero,
             onSelected: (_) {
               signOut();
             },
@@ -220,11 +251,11 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _LaunchPath extends StatelessWidget {
-  const _LaunchPath({required this.steps, required this.onNavigate});
+/// Carte héros : la plante pousse avec le nombre d'étapes terminées.
+class _GardenCard extends StatelessWidget {
+  const _GardenCard({required this.steps});
 
   final List<_Step> steps;
-  final ValueChanged<int>? onNavigate;
 
   @override
   Widget build(BuildContext context) {
@@ -232,52 +263,74 @@ class _LaunchPath extends StatelessWidget {
     final theme = Theme.of(context);
     final done = steps.where((s) => s.done).length;
     final remaining = steps.length - done;
-    final navigate = onNavigate;
+    final progress = done / steps.length;
 
     return GlassPanel(
       highlight: true,
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      radius: 28,
+      padding: EdgeInsets.zero,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(26),
+        child: SizedBox(
+          height: 236,
+          child: Stack(
             children: [
-              ProgressRing(
-                value: done / steps.length,
-                size: 104,
-                stroke: 10,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '$done/${steps.length}',
-                      style: theme.textTheme.titleLarge,
-                    ),
-                    Text(
-                      'étapes',
-                      style: TextStyle(fontSize: 11, color: p.textSecondary),
-                    ),
-                  ],
+              Positioned(
+                right: -14,
+                bottom: -6,
+                child: GrowthPlant(
+                  size: 210,
+                  growth: 0.2 + 0.8 * progress,
                 ),
               ),
-              const SizedBox(width: 18),
-              Expanded(
+              Positioned(
+                left: 20,
+                top: 20,
+                right: 150,
+                bottom: 20,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Parcours de lancement',
-                      style: theme.textTheme.titleLarge,
+                    SgPill(
+                      label: 'Ton jardin',
+                      icon: Icons.spa_outlined,
+                      color: p.accent,
+                    ),
+                    const SizedBox(height: 14),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '$done',
+                            style: theme.textTheme.displayMedium?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -3,
+                              height: 0.95,
+                            ),
+                          ),
+                          TextSpan(
+                            text: '/${steps.length}',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              color: p.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 6),
+                    Text(
+                      'Parcours de lancement',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const Spacer(),
                     Text(
                       remaining > 0
                           ? 'Encore $remaining étape${remaining > 1 ? 's' : ''} '
                               'avant ta première publication automatique.'
                           : 'Tout est prêt pour publier.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
+                      style: theme.textTheme.bodySmall?.copyWith(
                         color: p.textSecondary,
-                        height: 1.4,
+                        height: 1.35,
                       ),
                     ),
                   ],
@@ -285,11 +338,35 @@ class _LaunchPath extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+        ),
+      ),
+    );
+  }
+}
+
+/// Les étapes, reliées comme les nœuds d'une tige.
+class _Timeline extends StatelessWidget {
+  const _Timeline({required this.steps, required this.onNavigate});
+
+  final List<_Step> steps;
+  final ValueChanged<int>? onNavigate;
+
+  @override
+  Widget build(BuildContext context) {
+    final navigate = onNavigate;
+    final firstTodo = steps.indexWhere((s) => !s.done);
+
+    return GlassPanel(
+      padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+      child: Column(
+        children: [
           for (var i = 0; i < steps.length; i++)
             _StepRow(
               step: steps[i],
               number: i + 1,
+              isNext: i == firstTodo,
+              isLast: i == steps.length - 1,
+              nextDone: i + 1 < steps.length && steps[i + 1].done,
               onTap: steps[i].tab == null || navigate == null
                   ? null
                   : () => navigate(steps[i].tab!),
@@ -301,10 +378,20 @@ class _LaunchPath extends StatelessWidget {
 }
 
 class _StepRow extends StatelessWidget {
-  const _StepRow({required this.step, required this.number, this.onTap});
+  const _StepRow({
+    required this.step,
+    required this.number,
+    required this.isNext,
+    required this.isLast,
+    required this.nextDone,
+    this.onTap,
+  });
 
   final _Step step;
   final int number;
+  final bool isNext;
+  final bool isLast;
+  final bool nextDone;
   final VoidCallback? onTap;
 
   @override
@@ -312,39 +399,50 @@ class _StepRow extends StatelessWidget {
     final p = SgPalette.of(context);
     final theme = Theme.of(context);
 
-    final marker = step.done
-        ? Container(
-            width: 30,
-            height: 30,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: SgPalette.brand,
-            ),
-            child: const Icon(Icons.check_rounded, size: 18, color: Colors.white),
-          )
-        : Container(
-            width: 30,
-            height: 30,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: p.glassBorder, width: 1.5),
-            ),
-            child: Text(
-              '$number',
-              style: TextStyle(
-                color: p.textSecondary,
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-              ),
-            ),
-          );
+    final Widget marker;
+    if (step.done) {
+      marker = Container(
+        width: 30,
+        height: 30,
+        decoration: BoxDecoration(
+          color: SgPalette.lime,
+          shape: BoxShape.circle,
+          border: Border.all(color: p.ink, width: 1.6),
+        ),
+        child: const Icon(
+          Icons.check_rounded,
+          size: 18,
+          color: SgPalette.inkDark,
+        ),
+      );
+    } else {
+      marker = Container(
+        width: 30,
+        height: 30,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isNext ? p.accent : p.glassBorder,
+            width: isNext ? 2.2 : 1.4,
+          ),
+        ),
+        child: Text(
+          '$number',
+          style: TextStyle(
+            color: isNext ? p.accent : p.textSecondary,
+            fontWeight: FontWeight.w900,
+            fontSize: 13,
+          ),
+        ),
+      );
+    }
 
     final Widget trailing;
     if (step.done) {
       trailing = SgPill(label: 'Fait', color: p.success);
     } else if (onTap != null) {
-      trailing = Icon(Icons.chevron_right, color: p.textSecondary);
+      trailing = Icon(Icons.arrow_forward_rounded, color: p.accent);
     } else {
       trailing = const SgPill(label: 'Bientôt');
     }
@@ -352,34 +450,60 @@ class _StepRow extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(14),
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 9),
+      child: IntrinsicHeight(
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            marker,
-            const SizedBox(width: 14),
-            Expanded(
+            SizedBox(
+              width: 30,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    step.title,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+                  marker,
+                  if (!isLast)
+                    Expanded(
+                      child: Container(
+                        width: 2.5,
+                        margin: const EdgeInsets.symmetric(vertical: 3),
+                        decoration: BoxDecoration(
+                          color: step.done && nextDone
+                              ? p.accent
+                              : p.glassBorder,
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    step.hint,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: p.textSecondary,
-                    ),
-                  ),
                 ],
               ),
             ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(bottom: isLast ? 0 : 14, top: 3),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      step.title,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      step.hint,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: p.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(width: 8),
-            trailing,
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Align(alignment: Alignment.topCenter, child: trailing),
+            ),
           ],
         ),
       ),
@@ -392,80 +516,97 @@ class _StudioCard extends StatelessWidget {
 
   final VoidCallback onOpen;
 
-  Widget _circle(double size, double alpha) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withValues(alpha: alpha),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final p = SgPalette.of(context);
     final radius = BorderRadius.circular(28);
+    const ink = SgPalette.inkDark;
 
     return Container(
       decoration: BoxDecoration(
-        gradient: SgPalette.brand,
+        color: SgPalette.lime,
         borderRadius: radius,
+        border: Border.all(color: p.isDark ? SgPalette.lime : ink, width: 1.6),
         boxShadow: [
-          BoxShadow(
-            color: p.accent.withValues(alpha: 0.38),
-            blurRadius: 32,
-            offset: const Offset(0, 14),
-          ),
+          if (!p.isDark)
+            const BoxShadow(
+              color: ink,
+              offset: Offset(5, 5),
+              blurRadius: 0,
+            ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: radius,
+        borderRadius: BorderRadius.circular(26),
         child: Stack(
           children: [
-            Positioned(right: -44, top: -44, child: _circle(170, 0.10)),
-            Positioned(right: 36, bottom: -56, child: _circle(120, 0.08)),
+            Positioned(
+              right: -26,
+              top: -22,
+              child: Transform.rotate(
+                angle: 0.25,
+                child: Icon(
+                  Icons.auto_awesome,
+                  size: 170,
+                  color: ink.withValues(alpha: 0.09),
+                ),
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.all(22),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(15),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
                     ),
-                    child: const Icon(
-                      Icons.auto_awesome,
-                      color: Colors.white,
-                      size: 26,
+                    decoration: BoxDecoration(
+                      color: ink,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.bolt, size: 14, color: SgPalette.lime),
+                        SizedBox(width: 4),
+                        Text(
+                          'INTELLIGENCE ARTIFICIELLE',
+                          style: TextStyle(
+                            color: SgPalette.lime,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 18),
                   const Text(
                     'Studio IA',
                     style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.6,
+                      color: ink,
+                      fontSize: 38,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1.8,
+                      height: 1,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Génère des idées, des textes et des variantes alignés '
-                    'sur ta stratégie.',
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Des idées, des textes et des variantes alignés sur '
+                    'ta stratégie.',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.92),
-                      height: 1.45,
+                      color: ink,
+                      fontWeight: FontWeight.w600,
+                      height: 1.4,
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 20),
                   Material(
-                    color: Colors.white,
+                    color: ink,
                     borderRadius: BorderRadius.circular(16),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(16),
@@ -473,7 +614,7 @@ class _StudioCard extends StatelessWidget {
                       child: const Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: 18,
-                          vertical: 12,
+                          vertical: 13,
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -481,15 +622,15 @@ class _StudioCard extends StatelessWidget {
                             Text(
                               'Découvrir le Studio',
                               style: TextStyle(
-                                color: Color(0xFF4B2BD6),
-                                fontWeight: FontWeight.w800,
+                                color: SgPalette.lime,
+                                fontWeight: FontWeight.w900,
                               ),
                             ),
                             SizedBox(width: 8),
                             Icon(
                               Icons.arrow_forward_rounded,
                               size: 18,
-                              color: Color(0xFF4B2BD6),
+                              color: SgPalette.lime,
                             ),
                           ],
                         ),
@@ -506,65 +647,68 @@ class _StudioCard extends StatelessWidget {
   }
 }
 
+/// Grille décalée : deux colonnes de hauteurs alternées.
 class _SpaceGrid extends StatelessWidget {
   const _SpaceGrid({required this.onNavigate});
 
   final ValueChanged<int>? onNavigate;
+
+  static const double _tall = 196;
+  static const double _short = 142;
 
   @override
   Widget build(BuildContext context) {
     final p = SgPalette.of(context);
     final navigate = onNavigate;
 
-    return Column(
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        Expanded(
+          child: Column(
             children: [
-              Expanded(
-                child: _SpaceTile(
-                  icon: Icons.facebook,
-                  title: 'Page Facebook',
-                  subtitle: 'Connecte ta Page pour publier.',
-                  status: SgPill(label: 'À connecter', color: p.accentWarm),
-                ),
+              _SpaceTile(
+                height: _tall,
+                icon: Icons.facebook,
+                tint: p.accentCool,
+                title: 'Page Facebook',
+                subtitle: 'Connecte ta Page pour publier.',
+                status: SgPill(label: 'À connecter', color: p.accentWarm),
               ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: _SpaceTile(
-                  icon: Icons.edit_note,
-                  title: 'Publications',
-                  subtitle: 'Tes contenus au même endroit.',
-                  status: SgPill(label: 'Bientôt'),
-                ),
+              const SizedBox(height: 12),
+              _SpaceTile(
+                height: _short,
+                icon: Icons.calendar_month,
+                tint: p.accentWarm,
+                title: 'Agenda',
+                subtitle: 'Planifie tes posts.',
+                status: const SgPill(label: 'Bientôt'),
+                onTap: navigate == null ? null : () => navigate(2),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 12),
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
             children: [
-              Expanded(
-                child: _SpaceTile(
-                  icon: Icons.calendar_month,
-                  title: 'Agenda',
-                  subtitle: 'Planifie tes prochains posts.',
-                  status: const SgPill(label: 'Bientôt'),
-                  onTap: navigate == null ? null : () => navigate(2),
-                ),
+              const _SpaceTile(
+                height: _short,
+                icon: Icons.edit_note,
+                tint: null,
+                title: 'Publications',
+                subtitle: 'Tes contenus ici.',
+                status: SgPill(label: 'Bientôt'),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _SpaceTile(
-                  icon: Icons.insights,
-                  title: 'Statistiques',
-                  subtitle: 'Mesure ta croissance.',
-                  status: const SgPill(label: 'Bientôt'),
-                  onTap: navigate == null ? null : () => navigate(3),
-                ),
+              const SizedBox(height: 12),
+              _SpaceTile(
+                height: _tall,
+                icon: Icons.insights,
+                tint: p.accent,
+                title: 'Statistiques',
+                subtitle: 'Mesure ta croissance, semaine après semaine.',
+                status: const SgPill(label: 'Bientôt'),
+                onTap: navigate == null ? null : () => navigate(3),
               ),
             ],
           ),
@@ -576,14 +720,20 @@ class _SpaceGrid extends StatelessWidget {
 
 class _SpaceTile extends StatelessWidget {
   const _SpaceTile({
+    required this.height,
     required this.icon,
+    required this.tint,
     required this.title,
     required this.subtitle,
     required this.status,
     this.onTap,
   });
 
+  final double height;
   final IconData icon;
+
+  /// Couleur de l'icône ; la couleur d'accent par défaut si absente.
+  final Color? tint;
   final String title;
   final String subtitle;
   final Widget status;
@@ -593,37 +743,42 @@ class _SpaceTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = SgPalette.of(context);
     final theme = Theme.of(context);
+    final color = tint ?? p.textSecondary;
 
-    return GlassPanel(
-      padding: const EdgeInsets.all(16),
-      radius: 22,
-      onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: p.accent.withValues(alpha: 0.16),
-              borderRadius: BorderRadius.circular(14),
+    return SizedBox(
+      height: height,
+      child: GlassPanel(
+        padding: const EdgeInsets.all(14),
+        radius: 22,
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: Icon(icon, color: color, size: 22),
             ),
-            child: Icon(icon, color: p.accent, size: 22),
-          ),
-          const SizedBox(height: 14),
-          Text(title, style: theme.textTheme.titleMedium),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: p.textSecondary,
-              height: 1.35,
+            const SizedBox(height: 12),
+            Text(title, style: theme.textTheme.titleMedium),
+            const SizedBox(height: 3),
+            Text(
+              subtitle,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: p.textSecondary,
+                height: 1.3,
+              ),
             ),
-          ),
-          const Spacer(),
-          const SizedBox(height: 12),
-          status,
-        ],
+            const Spacer(),
+            status,
+          ],
+        ),
       ),
     );
   }

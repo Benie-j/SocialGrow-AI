@@ -33,6 +33,9 @@ class FeaturePreviewPage extends StatelessWidget {
   final IconData icon;
   final List<FeatureHighlight> highlights;
 
+  static List<Color> _tints(SgPalette p) =>
+      [p.accent, p.accentWarm, p.accentCool];
+
   @override
   Widget build(BuildContext context) {
     final p = SgPalette.of(context);
@@ -40,7 +43,7 @@ class FeaturePreviewPage extends StatelessWidget {
     final bottom = MediaQuery.paddingOf(context).bottom;
 
     return ListView(
-      padding: EdgeInsets.fromLTRB(20, 16, 20, bottom + 28),
+      padding: EdgeInsets.fromLTRB(20, 16, 20, bottom + 100),
       children: [
         SgReveal(
           child: SgPageHeader(
@@ -54,7 +57,7 @@ class FeaturePreviewPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        SgReveal(order: 1, child: _OrbArt(icon: icon)),
+        SgReveal(order: 1, child: _StickerArt(icon: icon)),
         const SizedBox(height: 8),
         SgReveal(
           order: 2,
@@ -73,10 +76,10 @@ class FeaturePreviewPage extends StatelessWidget {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: p.accent.withValues(alpha: 0.16),
+                      color: _tints(p)[i % 3].withValues(alpha: 0.16),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Icon(highlights[i].icon, color: p.accent),
+                    child: Icon(highlights[i].icon, color: _tints(p)[i % 3]),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -115,75 +118,74 @@ class FeaturePreviewPage extends StatelessWidget {
   }
 }
 
-class _OrbArt extends StatelessWidget {
-  const _OrbArt({required this.icon});
+/// Illustration de rubrique : un sticker incliné entouré de petites étincelles.
+class _StickerArt extends StatelessWidget {
+  const _StickerArt({required this.icon});
 
   final IconData icon;
-
-  Widget _ring(double size, Color color) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: color, width: 1.5),
-      ),
-    );
-  }
-
-  Widget _dot(double size, Color color) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color,
-        boxShadow: [
-          BoxShadow(color: color.withValues(alpha: 0.7), blurRadius: 12),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     final p = SgPalette.of(context);
+    const ink = SgPalette.inkDark;
+
+    Widget spark(double size, Color color, double angle) => Transform.rotate(
+          angle: angle,
+          child: Icon(Icons.auto_awesome, size: size, color: color),
+        );
 
     return SizedBox(
-      height: 230,
+      height: 220,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          _ring(214, p.accent.withValues(alpha: 0.10)),
-          _ring(160, p.accent.withValues(alpha: 0.18)),
-          _ring(112, p.accent.withValues(alpha: 0.30)),
-          Container(
-            width: 82,
-            height: 82,
-            decoration: BoxDecoration(
-              gradient: SgPalette.brand,
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: p.accent.withValues(alpha: 0.55),
-                  blurRadius: 36,
-                  offset: const Offset(0, 12),
-                ),
-              ],
+          Transform.rotate(
+            angle: 0.12,
+            child: Container(
+              width: 150,
+              height: 150,
+              decoration: BoxDecoration(
+                color: p.accentWarm.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(38),
+                border: Border.all(color: p.ink, width: 1.6),
+              ),
             ),
-            child: Icon(icon, size: 38, color: Colors.white),
+          ),
+          Transform.rotate(
+            angle: -0.07,
+            child: Container(
+              width: 150,
+              height: 150,
+              decoration: BoxDecoration(
+                color: SgPalette.lime,
+                borderRadius: BorderRadius.circular(38),
+                border: Border.all(
+                  color: p.isDark ? SgPalette.lime : ink,
+                  width: 1.6,
+                ),
+                boxShadow: [
+                  if (!p.isDark)
+                    const BoxShadow(
+                      color: ink,
+                      offset: Offset(6, 6),
+                      blurRadius: 0,
+                    ),
+                ],
+              ),
+              child: Icon(icon, size: 70, color: ink),
+            ),
           ),
           Align(
-            alignment: const Alignment(0.78, -0.55),
-            child: _dot(11, p.accentCool),
+            alignment: const Alignment(0.74, -0.7),
+            child: spark(30, p.accent, 0.2),
           ),
           Align(
-            alignment: const Alignment(-0.82, 0.35),
-            child: _dot(9, p.accentWarm),
+            alignment: const Alignment(-0.8, 0.5),
+            child: spark(22, p.accentCool, -0.3),
           ),
           Align(
-            alignment: const Alignment(0.55, 0.78),
-            child: _dot(7, p.accent),
+            alignment: const Alignment(0.62, 0.85),
+            child: spark(16, p.accentWarm, 0.5),
           ),
         ],
       ),
