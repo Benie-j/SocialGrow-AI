@@ -5,7 +5,10 @@ import '../../../core/widgets/glass_panel.dart';
 import '../../../core/widgets/page_header.dart';
 import '../../../core/widgets/reveal.dart';
 import '../../../core/widgets/sg_pill.dart';
+import '../../../data/facebook_connection.dart';
 import '../../../data/publication_settings_repository.dart';
+import '../../../data/workspace_overview.dart';
+import 'facebook_connection_page.dart';
 import 'publication_settings_page.dart';
 
 class _Entry {
@@ -70,10 +73,34 @@ const _entries = [
 ];
 
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key, this.repository, this.onSignOut});
+  const SettingsPage({
+    super.key,
+    this.repository,
+    this.onSignOut,
+    this.facebookRepository,
+    this.workspace,
+    this.onWorkspaceChanged,
+  });
 
   /// Injectable pour les tests ; par défaut, Supabase.
   final PublicationSettingsRepository? repository;
+
+  /// Dépôt de la connexion Facebook ; sans lui, la rubrique reste « Bientôt ».
+  final FacebookConnectionRepository? facebookRepository;
+
+  /// Espace de travail chargé (identifiant et rôle) ; requis pour la rubrique
+  /// « Connexion Facebook ».
+  final WorkspaceOverview? workspace;
+
+  /// Appelé après une connexion ou une déconnexion de Page.
+  final Future<void> Function()? onWorkspaceChanged;
+
+  bool _isAvailable(_Entry entry) {
+    if (entry.title == 'Connexion Facebook') {
+      return facebookRepository != null && workspace != null;
+    }
+    return entry.available;
+  }
 
   /// Action de déconnexion ; le bouton n'apparaît que si elle est fournie.
   final Future<void> Function()? onSignOut;
@@ -83,6 +110,20 @@ class SettingsPage extends StatelessWidget {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => PublicationSettingsPage(repository: repository),
+        ),
+      );
+    } else if (entry.title == 'Connexion Facebook') {
+      final repo = facebookRepository;
+      final space = workspace;
+      if (repo == null || space == null) return;
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => FacebookConnectionPage(
+            repository: repo,
+            workspaceId: space.workspaceId,
+            role: space.role,
+            onChanged: onWorkspaceChanged,
+          ),
         ),
       );
     } else if (entry.title == 'À propos') {
@@ -116,7 +157,8 @@ class SettingsPage extends StatelessWidget {
             order: 1 + (i < 4 ? i : 4),
             child: _EntryTile(
               entry: _entries[i],
-              onTap: _entries[i].available
+              enabled: _isAvailable(_entries[i]),
+              onTap: _isAvailable(_entries[i])
                   ? () => _open(context, _entries[i])
                   : null,
             ),
@@ -153,17 +195,20 @@ class SettingsPage extends StatelessWidget {
 }
 
 class _EntryTile extends StatelessWidget {
-  const _EntryTile({required this.entry, required this.onTap});
+  const _EntryTile({
+    required this.entry,
+    required this.enabled,
+    required this.onTap,
+  });
 
   final _Entry entry;
+  final bool enabled;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final p = SgPalette.of(context);
     final theme = Theme.of(context);
-    final enabled = entry.available;
-
     return Opacity(
       opacity: enabled ? 1 : 0.62,
       child: GlassPanel(

@@ -30,9 +30,10 @@ class SupabaseWorkspaceRepository implements WorkspaceRepository {
       _profile(userId),
       _client
           .from('facebook_pages')
-          .select('id')
+          .select('id, page_name')
           .eq('workspace_id', access.workspaceId)
-          .eq('is_active', true),
+          .eq('is_active', true)
+          .order('connected_at', ascending: true),
     ]);
 
     final profile = results[0] as Map<String, dynamic>?;
@@ -43,6 +44,7 @@ class SupabaseWorkspaceRepository implements WorkspaceRepository {
       workspaceName: access.workspaceName,
       role: access.role,
       activePageCount: pages.length,
+      pageName: pages.isEmpty ? null : _text((pages.first as Map)['page_name']),
       displayName: _text(profile?['display_name']),
       avatarUrl: _text(profile?['avatar_url']),
     );

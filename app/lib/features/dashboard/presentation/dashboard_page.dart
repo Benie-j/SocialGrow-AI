@@ -64,12 +64,19 @@ class DashboardPage extends StatelessWidget {
       _Step(
         title: 'Connecter ta Page Facebook',
         hint: pageDone
-            ? (pages > 1 ? '$pages Pages connectées.' : '1 Page connectée.')
+            ? _connectedHint(overview?.pageName, pages)
             : 'Choisis la Page à faire grandir.',
         done: pageDone,
       ),
       ..._remainingSteps,
     ];
+  }
+
+  static String _connectedHint(String? name, int pages) {
+    if (name == null) {
+      return pages > 1 ? '$pages Pages connectées.' : '1 Page connectée.';
+    }
+    return pages > 1 ? '$name et ${pages - 1} autre(s) Page(s).' : name;
   }
 
   static const _remainingSteps = [
@@ -162,6 +169,7 @@ class DashboardPage extends StatelessWidget {
           child: _SpaceGrid(
             onNavigate: onNavigate,
             pageConnected: overview?.hasConnectedPage ?? false,
+            pageName: overview?.pageName,
           ),
         ),
         const SizedBox(height: 24),
@@ -771,10 +779,15 @@ class _StudioCard extends StatelessWidget {
 
 /// Grille décalée : deux colonnes de hauteurs alternées.
 class _SpaceGrid extends StatelessWidget {
-  const _SpaceGrid({required this.onNavigate, required this.pageConnected});
+  const _SpaceGrid({
+    required this.onNavigate,
+    required this.pageConnected,
+    this.pageName,
+  });
 
   final ValueChanged<int>? onNavigate;
   final bool pageConnected;
+  final String? pageName;
 
   static const double _tall = 214;
   static const double _short = 170;
@@ -796,7 +809,7 @@ class _SpaceGrid extends StatelessWidget {
                 tint: p.accentCool,
                 title: 'Page Facebook',
                 subtitle: pageConnected
-                    ? 'Ta Page est prête à publier.'
+                    ? (pageName ?? 'Ta Page est prête à publier.')
                     : 'Connecte ta Page pour publier.',
                 status: pageConnected
                     ? SgPill(label: 'Connectée', color: p.success)

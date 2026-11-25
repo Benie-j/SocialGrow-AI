@@ -5,6 +5,7 @@ class WorkspaceOverview {
     required this.workspaceName,
     required this.role,
     required this.activePageCount,
+    this.pageName,
     this.displayName,
     this.avatarUrl,
   });
@@ -17,6 +18,9 @@ class WorkspaceOverview {
 
   /// Nombre de Pages Facebook actives connectées à l'espace.
   final int activePageCount;
+
+  /// Nom de la Page connectée la plus ancienne, s'il y en a une.
+  final String? pageName;
 
   /// Nom et photo du profil, s'ils sont renseignés.
   final String? displayName;
