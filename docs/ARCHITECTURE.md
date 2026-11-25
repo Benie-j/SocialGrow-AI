@@ -1,4 +1,4 @@
-# SocialGrow AI — Architecture
+# JUN AI — Architecture
 
 ## Application Flutter
 
@@ -109,3 +109,11 @@ automatiquement par Supabase. Facultatif : secret `META_GRAPH_VERSION` (défaut 
 - « Consommation du mois » : calculée depuis `ai_generation_logs` (générations, tokens, taux de réussite, durée moyenne). Le compteur reste à zéro tant qu'aucune Edge Function de génération n'écrit dans cette table.
 - La clé Groq n'est jamais saisie ni stockée dans l'app ou dans la base : secret Supabase lu uniquement par l'Edge Function de génération.
 - À brancher : l'Edge Function de génération doit lire `groq_settings` (modèles, température, tokens), refuser au-delà du garde-fou mensuel et journaliser chaque appel dans `ai_generation_logs`.
+
+## Identité de marque
+
+- Nom affiché : **JUN AI** (anciennement SocialGrow AI). Les identifiants techniques ne changent pas : dépôt GitHub, package Dart `socialgrow_ai`, applicationId `com.socialgrow.*`, schéma de retour `socialgrowai://login-callback` (déclaré dans Supabase Auth).
+- Logo : `app/branding/jun_mark.svg` est la source de vérité (J + feuille + étincelle). `JunMarkPainter` (`app/lib/core/brand/jun_mark.dart`) reprend les mêmes coordonnées ; modifier le dessin dans les deux.
+- Images (icônes adaptive, thématique Android 13, Play Store, écran natif) : `python scripts/generate_brand_assets.py` (poste de développement : `pip install cairosvg pillow`), sorties dans `app/branding/`.
+- En CI, après `flutter create` : `configure_android_branding.py` (libellé « JUN AI »), `flutter_launcher_icons` (icônes) et `flutter_native_splash` (fond d'encre, sans image).
+- Démarrage : écran natif d'encre, puis `SplashGate` (Flutter) dessine la marque et le mot-symbole sur le même fond, puis fondu vers l'app. Respecte « réduire les animations ».

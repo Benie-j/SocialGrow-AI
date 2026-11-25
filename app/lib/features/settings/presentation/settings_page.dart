@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../../core/brand/jun_mark.dart';
 import '../../../core/theme/sg_palette.dart';
 import '../../../core/widgets/glass_panel.dart';
 import '../../../core/widgets/page_header.dart';
@@ -144,8 +145,9 @@ class SettingsPage extends StatelessWidget {
     } else if (entry.title == 'À propos') {
       showAboutDialog(
         context: context,
-        applicationName: 'SocialGrow AI',
+        applicationName: 'JUN AI',
         applicationVersion: '0.1.0',
+        applicationIcon: const JunTile(size: 52),
       );
     }
   }
@@ -163,7 +165,7 @@ class SettingsPage extends StatelessWidget {
         const SgReveal(
           child: SgPageHeader(
             title: 'Paramètres',
-            subtitle: 'Personnalise ton espace SocialGrow.',
+            subtitle: 'Personnalise ton espace JUN AI.',
           ),
         ),
         const SizedBox(height: 22),
@@ -200,7 +202,7 @@ class SettingsPage extends StatelessWidget {
         ],
         const SizedBox(height: 18),
         Text(
-          'SocialGrow AI • version 0.1.0',
+          'JUN AI • version 0.1.0',
           textAlign: TextAlign.center,
           style: theme.textTheme.bodySmall?.copyWith(color: p.textSecondary),
         ),

@@ -183,7 +183,7 @@ class _FacebookConnectionPageState extends State<FacebookConnectionPage>
       builder: (context) => AlertDialog(
         title: const Text('Déconnecter cette Page ?'),
         content: Text(
-          '« ${page.name} » ne sera plus gérée par SocialGrow AI. Ses '
+          '« ${page.name} » ne sera plus gérée par JUN AI. Ses '
           'publications déjà créées restent dans ton historique.',
         ),
         actions: [

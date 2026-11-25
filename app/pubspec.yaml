@@ -1,5 +1,5 @@
 name: socialgrow_ai
-description: SocialGrow AI - gestion et croissance d'une Page Facebook avec Groq.
+description: JUN AI - gestion et croissance d'une Page Facebook avec Groq.
 publish_to: "none"
 version: 0.1.0+1
 
@@ -16,6 +16,33 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.0
+  flutter_native_splash: ^2.4.0
 
 flutter:
   uses-material-design: true
+
+# Icônes Android (adaptive + thématique Android 13) : générées en CI après
+# `flutter create`, à partir des images de app/branding/.
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "branding/icon_legacy.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "branding/icon_background.png"
+  adaptive_icon_foreground: "branding/icon_foreground.png"
+  adaptive_icon_monochrome: "branding/icon_monochrome.png"
+
+# Écran de démarrage natif : fond d'encre sans image. La marque est dessinée
+# juste après par SplashGate (Flutter), sur le même fond, sans coupure.
+flutter_native_splash:
+  color: "#111611"
+  color_dark: "#111611"
+  image: branding/splash_blank.png
+  android: true
+  ios: false
+  web: false
+  android_12:
+    color: "#111611"
+    icon_background_color: "#111611"
+    image: branding/splash_blank.png

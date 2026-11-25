@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108">
+  <title>JUN AI — marque</title>
+  <!-- Source de vérité du logo. Les coordonnées sont reprises à l'identique par
+       JunMarkPainter (app/lib/core/brand/jun_mark.dart). Zone sûre : cercle de
+       rayon 33 centré en (54, 54). -->
+  <g transform="translate(54 54) scale(0.88) translate(-54 -54)">
+    <!-- feuille : la pousse, qui part du sommet de la tige -->
+    <path d="M57 42 C54 33 61 24 74 23 C76 35 69 44 57 42 Z" fill="#FF7A59"/>
+    <!-- J : une tige qui plonge dans un crochet -->
+    <path d="M57 44 V64 C57 74.5 51.5 81 42.5 81 C36 81 31.5 77.5 30 71.5"
+          fill="none" stroke="#C8F23A" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- étincelle IA -->
+    <path d="M35 28 C35.6 33.4 37.6 35.4 43 36 C37.6 36.6 35.6 38.6 35 44 C34.4 38.6 32.4 36.6 27 36 C32.4 35.4 34.4 33.4 35 28 Z" fill="#F4EFE4"/>
+  </g>
+</svg>
