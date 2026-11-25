@@ -29,3 +29,11 @@ app/android/**/GeneratedPluginRegistrant.*
 .vscode/
 *.iml
 .DS_Store
+
+# Fichiers parasites (sauvegardes, caches Python)
+*.bak
+*.orig
+*.rej
+__pycache__/
+*.pyc
+patch-backup-*/
