@@ -56,6 +56,7 @@ class DashboardPage extends StatelessWidget {
     final pageDone = overview?.hasConnectedPage ?? false;
     final pages = overview?.activePageCount ?? 0;
     final strategyDone = overview?.hasEditorialStrategy ?? false;
+    final aiDone = overview?.hasAiActivity ?? false;
 
     return [
       const _Step(
@@ -78,7 +79,15 @@ class DashboardPage extends StatelessWidget {
         done: strategyDone,
         tab: 4,
       ),
-      ..._remainingSteps,
+      _Step(
+        title: 'Activer l’assistant IA',
+        hint: aiDone
+            ? 'Groq a déjà généré du contenu pour ton espace.'
+            : 'Génère un premier texte dans le Studio : '
+                'Groq prépare tes publications.',
+        done: aiDone,
+        tab: aiDone ? null : 1,
+      ),
     ];
   }
 
@@ -88,13 +97,6 @@ class DashboardPage extends StatelessWidget {
     }
     return pages > 1 ? '$name et ${pages - 1} autre(s) Page(s).' : name;
   }
-
-  static const _remainingSteps = [
-    _Step(
-      title: 'Activer l’assistant IA',
-      hint: 'Groq prépare tes publications.',
-    ),
-  ];
 
   static String greetingFor(int hour) {
     if (hour >= 5 && hour < 12) return 'Bonjour';
@@ -179,8 +181,7 @@ class DashboardPage extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         Text(
-          'Les fonctions Facebook et Groq seront activées dans les '
-          'prochaines étapes.',
+          'Ton assistant IA s’active dès la première génération réussie.',
           textAlign: TextAlign.center,
           style: theme.textTheme.bodySmall?.copyWith(color: p.textSecondary),
         ),
