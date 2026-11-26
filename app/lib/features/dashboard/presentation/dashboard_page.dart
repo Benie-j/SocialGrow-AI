@@ -49,11 +49,13 @@ class DashboardPage extends StatelessWidget {
   /// Tirer pour actualiser ; absent = pas d'actualisation.
   final Future<void> Function()? onRefresh;
 
-  /// Seule la connexion d'une Page se déduit des données : les autres étapes
-  /// restent à faire tant qu'aucune donnée ne prouve le contraire.
+  /// La connexion d'une Page et la stratégie éditoriale se déduisent des
+  /// données : les autres étapes restent à faire tant qu'aucune donnée ne
+  /// prouve le contraire.
   static List<_Step> _stepsFor(WorkspaceOverview? overview) {
     final pageDone = overview?.hasConnectedPage ?? false;
     final pages = overview?.activePageCount ?? 0;
+    final strategyDone = overview?.hasEditorialStrategy ?? false;
 
     return [
       const _Step(
@@ -68,6 +70,14 @@ class DashboardPage extends StatelessWidget {
             : 'Choisis la Page à faire grandir.',
         done: pageDone,
       ),
+      _Step(
+        title: 'Définir ta stratégie éditoriale',
+        hint: strategyDone
+            ? 'Activité, piliers et voix de marque enregistrés.'
+            : 'Activité, piliers de contenu et voix de marque.',
+        done: strategyDone,
+        tab: 4,
+      ),
       ..._remainingSteps,
     ];
   }
@@ -80,11 +90,6 @@ class DashboardPage extends StatelessWidget {
   }
 
   static const _remainingSteps = [
-    _Step(
-      title: 'Définir ta stratégie éditoriale',
-      hint: 'Fréquence, horaires, public et contenus.',
-      tab: 4,
-    ),
     _Step(
       title: 'Activer l’assistant IA',
       hint: 'Groq prépare tes publications.',

@@ -133,7 +133,10 @@ class SettingsPage extends StatelessWidget {
     } else if (entry.title == 'Stratégie éditoriale') {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => EditorialStrategyPage(settingsRepository: repository),
+          builder: (_) => EditorialStrategyPage(
+            settingsRepository: repository,
+            onSaved: onWorkspaceChanged,
+          ),
         ),
       );
     } else if (entry.title == 'Paramètres Groq') {
