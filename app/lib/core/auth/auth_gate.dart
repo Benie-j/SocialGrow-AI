@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/agenda_repository.dart';
 import '../../data/facebook_connection.dart';
+import '../../data/stats_repository.dart';
 import '../../data/workspace_repository.dart';
 import '../../features/auth/presentation/auth_page.dart';
 import '../navigation/app_shell.dart';
@@ -61,6 +62,7 @@ class _AuthGateState extends State<AuthGate> {
       workspaceRepository: SupabaseWorkspaceRepository(_client),
       facebookRepository: SupabaseFacebookConnectionRepository(_client),
       agendaRepository: SupabaseAgendaRepository(_client),
+      statsRepository: SupabaseStatsRepository(_client),
       userEmail: _client.auth.currentUser?.email,
       userName: _metadata('full_name') ?? _metadata('name'),
       userAvatarUrl: _metadata('avatar_url') ?? _metadata('picture'),

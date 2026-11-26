@@ -3,11 +3,12 @@ import 'package:material_ui/material_ui.dart';
 import '../../data/facebook_connection.dart';
 import '../../data/publication_settings_repository.dart';
 import '../../data/agenda_repository.dart';
+import '../../data/stats_repository.dart';
 import '../../data/workspace_overview.dart';
 import '../../data/workspace_repository.dart';
 import '../../features/dashboard/presentation/dashboard_page.dart';
 import '../../features/agenda/presentation/agenda_page.dart';
-import '../../features/preview/presentation/feature_preview_page.dart';
+import '../../features/stats/presentation/stats_page.dart';
 import '../../features/studio/presentation/studio_page.dart';
 import '../../features/settings/presentation/settings_page.dart';
 import '../theme/sg_palette.dart';
@@ -25,6 +26,7 @@ class AppShell extends StatefulWidget {
     this.facebookRepository,
     this.studioPage,
     this.agendaRepository,
+    this.statsRepository,
   });
 
   final Future<void> Function() onSignOut;
@@ -35,6 +37,9 @@ class AppShell extends StatefulWidget {
 
   /// Données de l'agenda ; sans dépôt (tests), l'agenda s'affiche vide.
   final AgendaRepository? agendaRepository;
+
+  /// Données de l'onglet Statistiques ; sans dépôt (tests), il reste vide.
+  final StatsRepository? statsRepository;
   /// Injectable pour les tests ; par défaut, Supabase.
   final PublicationSettingsRepository? settingsRepository;
 
@@ -146,28 +151,7 @@ class _AppShellState extends State<AppShell> {
         repository: widget.agendaRepository,
         onOpenStudio: () => _select(1),
       ),
-      const FeaturePreviewPage(
-        title: 'Statistiques',
-        description: 'Les performances de ta Page, au même endroit.',
-        icon: Icons.insights,
-        highlights: [
-          FeatureHighlight(
-            icon: Icons.query_stats,
-            title: 'Performances réelles',
-            text: 'Portée et engagement de ta Page, issus de Meta.',
-          ),
-          FeatureHighlight(
-            icon: Icons.leaderboard_outlined,
-            title: 'Meilleurs contenus',
-            text: 'Ce qui fonctionne vraiment auprès de ta communauté.',
-          ),
-          FeatureHighlight(
-            icon: Icons.trending_up,
-            title: 'Évolution',
-            text: 'Suis ta croissance semaine après semaine.',
-          ),
-        ],
-      ),
+      StatsPage(repository: widget.statsRepository),
       SettingsPage(
         repository: widget.settingsRepository,
         onSignOut: widget.onSignOut,
