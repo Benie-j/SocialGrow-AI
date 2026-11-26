@@ -6,9 +6,11 @@ import '../../../core/widgets/glass_panel.dart';
 import '../../../core/widgets/page_header.dart';
 import '../../../core/widgets/reveal.dart';
 import '../../../core/widgets/sg_pill.dart';
+import '../../../data/account_repository.dart';
 import '../../../data/facebook_connection.dart';
 import '../../../data/publication_settings_repository.dart';
 import '../../../data/workspace_overview.dart';
+import 'account_page.dart';
 import 'editorial_strategy_page.dart';
 import 'facebook_connection_page.dart';
 import 'groq_settings_page.dart';
@@ -32,7 +34,8 @@ const _entries = [
   _Entry(
     icon: Icons.person_outline,
     title: 'Compte et profil',
-    subtitle: 'Informations de ton compte',
+    subtitle: 'Nom, connexion, espace de travail et déconnexion',
+    available: true,
   ),
   _Entry(
     icon: Icons.link,
@@ -84,7 +87,11 @@ class SettingsPage extends StatelessWidget {
     this.facebookRepository,
     this.workspace,
     this.onWorkspaceChanged,
+    this.accountRepository,
   });
+
+  /// Injectable pour les tests ; par défaut, Supabase.
+  final AccountRepository? accountRepository;
 
   /// Injectable pour les tests ; par défaut, Supabase.
   final PublicationSettingsRepository? repository;
@@ -136,6 +143,16 @@ class SettingsPage extends StatelessWidget {
           builder: (_) => EditorialStrategyPage(
             settingsRepository: repository,
             onSaved: onWorkspaceChanged,
+          ),
+        ),
+      );
+    } else if (entry.title == 'Compte et profil') {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => AccountPage(
+            repository: accountRepository,
+            onSignOut: onSignOut,
+            onChanged: onWorkspaceChanged,
           ),
         ),
       );
