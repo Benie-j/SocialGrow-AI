@@ -24,6 +24,7 @@ class _StudioPageState extends State<StudioPage> {
   String? _workspaceName;
   String? _selectedPageId;
   String? _currentPostId;
+  String? _currentImageUrl;
   bool _canDelete = false;
   String? _error;
   bool _loading = true;
@@ -63,7 +64,7 @@ class _StudioPageState extends State<StudioPage> {
           .order('page_name');
       final posts = await _client
           .from('posts')
-          .select('id,title,body,status,content_type,created_at,scheduled_at,published_at,error_message,meta_post_id,facebook_page_id')
+          .select('id,title,body,status,content_type,image_url,created_at,scheduled_at,published_at,error_message,meta_post_id,facebook_page_id')
           .eq('workspace_id', access.workspaceId)
           .order('updated_at', ascending: false)
           .limit(60);
@@ -124,6 +125,7 @@ class _StudioPageState extends State<StudioPage> {
       setState(() {
         _editor.text = content.trim();
         _currentPostId = null;
+        _currentImageUrl = null;
       });
     } catch (e) {
       if (mounted) setState(() => _error = _readableError(e));
@@ -151,7 +153,8 @@ class _StudioPageState extends State<StudioPage> {
           'created_by': user.id,
           'title': title,
           'body': body,
-          'content_type': 'text',
+          'content_type': _currentImageUrl == null ? 'text' : 'image',
+          'image_url': _currentImageUrl,
           'status': 'draft',
           'source': 'ai',
         }).select('id').single();
@@ -160,7 +163,8 @@ class _StudioPageState extends State<StudioPage> {
         await _client.from('posts').update({
           'title': title,
           'body': body,
-          'content_type': 'text',
+          'content_type': _currentImageUrl == null ? 'text' : 'image',
+          'image_url': _currentImageUrl,
           'status': 'draft',
           'error_message': null,
           'updated_at': DateTime.now().toUtc().toIso8601String(),
@@ -327,6 +331,7 @@ class _StudioPageState extends State<StudioPage> {
       _message('Publication programmée pour ${formatScheduleWhen(at)}.');
       setState(() {
         _currentPostId = null;
+        _currentImageUrl = null;
         _editor.clear();
         _idea.clear();
         _filter = 'scheduled';
@@ -376,7 +381,7 @@ class _StudioPageState extends State<StudioPage> {
     if (_workspaceId == null) return;
     final rows = await _client
         .from('posts')
-        .select('id,title,body,status,content_type,created_at,scheduled_at,published_at,error_message,meta_post_id,facebook_page_id')
+        .select('id,title,body,status,content_type,image_url,created_at,scheduled_at,published_at,error_message,meta_post_id,facebook_page_id')
         .eq('workspace_id', _workspaceId!)
         .order('updated_at', ascending: false)
         .limit(60);
@@ -390,6 +395,12 @@ class _StudioPageState extends State<StudioPage> {
       _error = post['status'] == 'failed' ? post['error_message']?.toString() : null;
       _idea.text = (post['title'] ?? '').toString();
       _editor.text = (post['body'] ?? '').toString();
+      final image = post['image_url']?.toString();
+      _currentImageUrl = post['content_type'] == 'image' &&
+              image != null &&
+              image.startsWith('https://')
+          ? image
+          : null;
       final pageId = post['facebook_page_id']?.toString();
       if (pageId != null && _pages.any((p) => p['id'].toString() == pageId)) {
         _selectedPageId = pageId;
@@ -407,6 +418,7 @@ class _StudioPageState extends State<StudioPage> {
       if (_currentPostId == id) {
         setState(() {
           _currentPostId = null;
+          _currentImageUrl = null;
           _editor.clear();
           _idea.clear();
         });
@@ -529,6 +541,29 @@ class _StudioPageState extends State<StudioPage> {
                     ),
                   ],
                 ),
+                if (_currentImageUrl != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      _currentImageUrl!,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox(
+                        height: 60,
+                        child: Center(child: Text('Image indisponible.')),
+                      ),
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () => setState(() => _currentImageUrl = null),
+                      icon: const Icon(Icons.hide_image_outlined),
+                      label: const Text('Retirer l’image'),
+                    ),
+                  ),
+                ],
                 TextField(
                   controller: _editor,
                   minLines: 9,

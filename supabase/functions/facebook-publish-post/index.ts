@@ -68,10 +68,10 @@ Deno.serve(async (req: Request) => {
     if (pageError || !page) return json({ error: "page_unavailable", message: "Cette Page Facebook n'est pas connectée ou active." }, 404);
 
     const { data: post, error: postError } = await admin.from("posts")
-      .select("id,workspace_id,facebook_page_id,body,status,content_type,meta_post_id")
+      .select("id,workspace_id,facebook_page_id,body,status,content_type,image_url,meta_post_id")
       .eq("id", postId).eq("workspace_id", workspaceId).maybeSingle();
     if (postError || !post) return json({ error: "post_not_found", message: "Publication introuvable." }, 404);
-    if (post.content_type !== "text") return json({ error: "unsupported_content_type", message: "Cette première version publie uniquement les textes." }, 422);
+    if (post.content_type !== "text" && !(post.content_type === "image" && typeof post.image_url === "string" && post.image_url.startsWith("https://"))) return json({ error: "unsupported_content_type", message: "Ce type de publication n'est pas pris en charge." }, 422);
     if (typeof post.body !== "string" || !post.body.trim() || post.body.length > 63206) {
       return json({ error: "invalid_content", message: "Le texte est vide ou dépasse la limite autorisée par Facebook." }, 400);
     }
@@ -99,8 +99,11 @@ Deno.serve(async (req: Request) => {
     }
 
     const version = Deno.env.get("META_GRAPH_VERSION") ?? "v27.0";
-    const endpoint = `https://graph.facebook.com/${version}/${encodeURIComponent(String(page.meta_page_id))}/feed`;
-    const form = new URLSearchParams({ message: String(post.body).trim() });
+    const withPhoto = post.content_type === "image" && typeof post.image_url === "string" && post.image_url.startsWith("https://");
+    const endpoint = `https://graph.facebook.com/${version}/${encodeURIComponent(String(page.meta_page_id))}/${withPhoto ? "photos" : "feed"}`;
+    const form = withPhoto
+      ? new URLSearchParams({ url: String(post.image_url), caption: String(post.body).trim() })
+      : new URLSearchParams({ message: String(post.body).trim() });
     let metaResponse: Response;
     try {
       metaResponse = await fetch(endpoint, {
@@ -118,7 +121,8 @@ Deno.serve(async (req: Request) => {
     }
 
     const meta = await metaResponse.json().catch(() => ({}));
-    if (!metaResponse.ok || typeof meta?.id !== "string" || !meta.id) {
+    const metaPostId = typeof meta?.post_id === "string" && meta.post_id ? meta.post_id : meta?.id;
+    if (!metaResponse.ok || typeof metaPostId !== "string" || !metaPostId) {
       const metaMessage = typeof meta?.error?.message === "string" ? meta.error.message.slice(0, 500) : "Meta a refusé la publication.";
       await admin.from("posts").update({
         status: "failed", error_message: metaMessage, updated_at: new Date().toISOString(),
@@ -128,16 +132,16 @@ Deno.serve(async (req: Request) => {
 
     const publishedAt = new Date().toISOString();
     const { error: updateError } = await admin.from("posts").update({
-      status: "published", meta_post_id: meta.id, published_at: publishedAt,
+      status: "published", meta_post_id: metaPostId, published_at: publishedAt,
       error_message: null, updated_at: publishedAt,
     }).eq("id", postId).eq("status", "publishing");
     if (updateError) {
       // Meta a confirmé la publication : ne pas re-déclencher automatiquement.
       console.error("meta_published_database_update_failed", updateError.code);
-      return json({ ok: true, published: true, meta_post_id: meta.id, warning: "Publié sur Facebook, mais le statut local n'a pas pu être actualisé." }, 200);
+      return json({ ok: true, published: true, meta_post_id: metaPostId, warning: "Publié sur Facebook, mais le statut local n'a pas pu être actualisé." }, 200);
     }
 
-    return json({ ok: true, published: true, page_name: page.page_name, meta_post_id: meta.id, published_at: publishedAt });
+    return json({ ok: true, published: true, page_name: page.page_name, meta_post_id: metaPostId, published_at: publishedAt });
   } catch (error) {
     console.error("facebook_publish_post_failed", error instanceof Error ? error.message : "unknown");
     if (admin && postId) {
