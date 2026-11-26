@@ -12,6 +12,7 @@ import '../../../data/workspace_overview.dart';
 import 'editorial_strategy_page.dart';
 import 'facebook_connection_page.dart';
 import 'groq_settings_page.dart';
+import 'notifications_page.dart';
 import 'publication_settings_page.dart';
 
 class _Entry {
@@ -62,6 +63,7 @@ const _entries = [
     icon: Icons.notifications_none,
     title: 'Notifications',
     subtitle: 'Alertes de publication et d’erreur',
+    available: true,
   ),
   _Entry(
     icon: Icons.security_outlined,
@@ -143,6 +145,12 @@ class SettingsPage extends StatelessWidget {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => GroqSettingsPage(settingsRepository: repository),
+        ),
+      );
+    } else if (entry.title == 'Notifications') {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => NotificationsPage(settingsRepository: repository),
         ),
       );
     } else if (entry.title == 'À propos') {
