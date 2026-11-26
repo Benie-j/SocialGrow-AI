@@ -175,15 +175,21 @@ class InsightMetric {
   final bool isTotal;
 }
 
+// Meta a retiré page_impressions*, page_fans et page_fan_adds : on lit les
+// mesures actuelles (et les anciennes, pour l'historique déjà collecté).
 const Map<String, String> _insightLabels = {
+  'page_total_media_view_unique': 'Portée',
   'page_impressions_unique': 'Portée',
-  'page_impressions': 'Impressions',
+  'page_media_view': 'Vues',
+  'page_impressions': 'Vues',
   'page_post_engagements': 'Interactions',
+  'page_daily_follows': 'Nouveaux abonnés',
   'page_fan_adds': 'Nouveaux abonnés',
+  'page_follows': 'Abonnés',
   'page_fans': 'Abonnés',
 };
 
-const Set<String> _stockMetrics = {'page_fans'};
+const Set<String> _stockMetrics = {'page_follows', 'page_fans'};
 
 /// Agrège les lignes brutes de `page_insights` sur la fenêtre lue.
 List<InsightMetric> summarizeInsights(List<Map<String, dynamic>> rows) {
