@@ -47,8 +47,10 @@ async function processPost(
   if (lateMs > MAX_LATE_MS) {
     return fail(admin, postId, "L'heure prévue est dépassée de plus de 6 h : la publication n'est pas partie. Reprogramme-la.", "scheduled");
   }
-  if (post.content_type !== "text") {
-    return fail(admin, postId, "Cette première version publie uniquement les textes.", "scheduled");
+  const imageUrl = typeof post.image_url === "string" ? post.image_url : "";
+  const withPhoto = post.content_type === "image" && imageUrl.startsWith("https://");
+  if (post.content_type !== "text" && !withPhoto) {
+    return fail(admin, postId, "Ce type de publication n'est pas pris en charge.", "scheduled");
   }
   const text = typeof post.body === "string" ? post.body.trim() : "";
   if (!text || text.length > 63206) {
@@ -75,13 +77,13 @@ async function processPost(
   }
 
   const version = Deno.env.get("META_GRAPH_VERSION") ?? "v27.0";
-  const endpoint = `https://graph.facebook.com/${version}/${encodeURIComponent(String(page.meta_page_id))}/feed`;
+  const endpoint = `https://graph.facebook.com/${version}/${encodeURIComponent(String(page.meta_page_id))}/${withPhoto ? "photos" : "feed"}`;
   let response: Response;
   try {
     response = await fetch(endpoint, {
       method: "POST",
       headers: { Authorization: `Bearer ${pageToken}`, "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ message: text }),
+      body: withPhoto ? new URLSearchParams({ url: imageUrl, caption: text }) : new URLSearchParams({ message: text }),
     });
   } catch {
     // Pas de nouvel essai automatique : Meta a peut-être reçu la demande (risque de doublon).
@@ -89,14 +91,15 @@ async function processPost(
   }
 
   const meta = await response.json().catch(() => ({}));
-  if (!response.ok || typeof meta?.id !== "string" || !meta.id) {
+  const metaPostId = typeof meta?.post_id === "string" && meta.post_id ? meta.post_id : meta?.id;
+  if (!response.ok || typeof metaPostId !== "string" || !metaPostId) {
     const message = typeof meta?.error?.message === "string" ? meta.error.message.slice(0, 500) : "Meta a refusé la publication.";
     return fail(admin, postId, message, "publishing");
   }
 
   const now = new Date().toISOString();
   const { error: updateError } = await admin.from("posts").update({
-    status: "published", meta_post_id: meta.id, published_at: now, error_message: null, updated_at: now,
+    status: "published", meta_post_id: metaPostId, published_at: now, error_message: null, updated_at: now,
   }).eq("id", postId).eq("status", "publishing");
   if (updateError) console.error("scheduled_published_database_update_failed", updateError.code);
   return "published";
@@ -121,7 +124,7 @@ Deno.serve(async (req: Request) => {
     }).eq("status", "publishing").lt("updated_at", new Date(Date.now() - STUCK_MS).toISOString());
 
     const { data: due, error: dueError } = await admin.from("posts")
-      .select("id,workspace_id,facebook_page_id,body,content_type,scheduled_at")
+      .select("id,workspace_id,facebook_page_id,body,content_type,image_url,scheduled_at")
       .eq("status", "scheduled").lte("scheduled_at", new Date().toISOString())
       .order("scheduled_at", { ascending: true }).limit(MAX_PER_RUN);
     if (dueError) return json({ error: "query_failed" }, 500);
