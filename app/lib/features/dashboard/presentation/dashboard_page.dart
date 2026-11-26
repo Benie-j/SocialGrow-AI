@@ -838,13 +838,14 @@ class _SpaceGrid extends StatelessWidget {
         Expanded(
           child: Column(
             children: [
-              const _SpaceTile(
+              _SpaceTile(
                 height: _short,
                 icon: Icons.edit_note,
-                tint: null,
+                tint: p.accent,
                 title: 'Publications',
                 subtitle: 'Tes contenus ici.',
-                status: SgPill(label: 'Bientôt'),
+                status: SgPill(label: 'Disponible', color: p.success),
+                onTap: navigate == null ? null : () => navigate(1),
               ),
               const SizedBox(height: 12),
               _SpaceTile(
@@ -853,7 +854,7 @@ class _SpaceGrid extends StatelessWidget {
                 tint: p.accent,
                 title: 'Statistiques',
                 subtitle: 'Mesure ta croissance, semaine après semaine.',
-                status: const SgPill(label: 'Bientôt'),
+                status: SgPill(label: 'Disponible', color: p.success),
                 onTap: navigate == null ? null : () => navigate(3),
               ),
             ],
