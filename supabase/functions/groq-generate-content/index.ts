@@ -44,6 +44,11 @@ Deno.serve(async (req: Request) => {
     workspaceId = String(body.workspace_id ?? "");
     const topic = String(body.topic ?? "").trim();
     const format = String(body.format ?? "post");
+    const action = String(body.action ?? "create");
+
+    if (action !== "create" && action !== "improve") {
+      return json({ error: "invalid_action", message: "Action non prise en charge." }, 400);
+    }
 
     const formatInstructions: Record<string, string> = {
       post: "Rédige une publication classique, claire et engageante.",
@@ -101,6 +106,9 @@ Deno.serve(async (req: Request) => {
 
     const systemPrompt = [
       "Tu es le directeur de création social media de JUN AI. Produis un contenu directement exploitable dans le format demandé.",
+      action === "improve"
+        ? "MISSION : améliore le texte fourni. Corrige les fautes, améliore la clarté, la fluidité, l'accroche et l'impact. Conserve le sujet, les informations vérifiables, l'intention et le sens. N'invente aucun fait. Ne réponds pas par une analyse : renvoie uniquement la version retravaillée."
+        : "MISSION : crée un nouveau contenu à partir du brief fourni.",
       "Réponds dans la langue demandée. N'invente aucun chiffre, témoignage, résultat ou caractéristique produit.",
       "Respecte strictement le sujet et l'objectif. N'ajoute pas de faits non fournis.",
       `Réseau : Facebook. Objectif enregistré : ${objective}. Ton enregistré : ${tone}. Langue : ${language}.`,

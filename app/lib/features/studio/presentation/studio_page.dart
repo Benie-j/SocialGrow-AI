@@ -27,6 +27,7 @@ class _StudioPageState extends State<StudioPage> {
   String? _error;
   bool _loading = true;
   bool _generating = false;
+  bool _improving = false;
   bool _saving = false;
   bool _publishing = false;
   int _view = 0;
@@ -130,6 +131,67 @@ class _StudioPageState extends State<StudioPage> {
       if (mounted) setState(() => _error = _readableError(e));
     } finally {
       if (mounted) setState(() => _generating = false);
+    }
+  }
+
+  Future<void> _improve() async {
+    final original = _editor.text.trim();
+
+    if (original.length < 3) {
+      _message('Écris ou génère un texte avant de demander son amélioration.');
+      return;
+    }
+
+    if (_workspaceId == null) return;
+
+    setState(() {
+      _improving = true;
+      _error = null;
+    });
+
+    try {
+      final response = await _client.functions.invoke(
+        'groq-generate-content',
+        body: {
+          'workspace_id': _workspaceId,
+          'topic': original,
+          'format': _format,
+          'action': 'improve',
+        },
+      );
+
+      final data = response.data;
+
+      if (data is! Map) {
+        throw Exception('Réponse du générateur invalide.');
+      }
+
+      if (data['error'] != null) {
+        throw Exception(data['message'] ?? data['error']);
+      }
+
+      final content = data['content'];
+
+      if (content is! String || content.trim().isEmpty) {
+        throw Exception('L’IA n’a renvoyé aucun texte.');
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _editor.text = content.trim();
+        _currentPostId = null;
+      });
+
+      _message('Texte amélioré. Vérifie-le avant de publier.');
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = _readableError(e));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _improving = false);
+      }
     }
   }
 
@@ -449,6 +511,25 @@ class _StudioPageState extends State<StudioPage> {
                     hintText: 'Ta publication apparaîtra ici…',
                     border: OutlineInputBorder(),
                     alignLabelWithHint: true,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _improving || _generating ? null : _improve,
+                    icon: _improving
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.auto_fix_high),
+                    label: Text(
+                      _improving
+                          ? 'Amélioration en cours…'
+                          : 'Améliorer avec JUN AI',
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
