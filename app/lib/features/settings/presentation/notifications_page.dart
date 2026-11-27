@@ -543,9 +543,11 @@ class _PushCard extends StatelessWidget {
           ],
           if (enabled) ...[
             const SizedBox(height: 6),
-            Theme(
-              data: theme.copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
+            Material(
+              type: MaterialType.transparency,
+              child: Theme(
+                data: theme.copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
                 tilePadding: EdgeInsets.zero,
                 childrenPadding: EdgeInsets.zero,
                 title: Text(
@@ -569,6 +571,7 @@ class _PushCard extends StatelessWidget {
                   const SizedBox(height: 8),
                 ],
               ),
+            ),
             ),
           ],
         ],

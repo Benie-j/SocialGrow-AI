@@ -109,6 +109,7 @@ Future<void> _pumpShell(WidgetTester tester, FakePushService push) async {
     MaterialApp(
       home: AppShell(
         onSignOut: () async {},
+        studioPage: const SizedBox.shrink(),
         pushService: push,
         notificationsRepository: _EmptyNotificationsRepository(),
       ),
