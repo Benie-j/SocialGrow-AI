@@ -2,7 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'sg_palette.dart';
 
-/// Thèmes Material de SocialGrow AI (identité « Sève »).
+/// Thèmes Material de JUN AI (identité « Sève »).
 class AppTheme {
   const AppTheme._();
 

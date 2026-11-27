@@ -90,7 +90,7 @@ class _AuthPageState extends State<AuthPage> {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
-                                'SocialGrow',
+                                'JUN',
                                 style: theme.textTheme.headlineMedium?.copyWith(
                                   fontSize: 44,
                                   letterSpacing: -2.4,
@@ -183,7 +183,7 @@ class _AuthPageState extends State<AuthPage> {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      'En continuant, tu autorises SocialGrow AI à accéder '
+                      'En continuant, tu autorises JUN AI à accéder '
                       'aux Pages Facebook que tu choisis, selon les '
                       'permissions accordées.',
                       textAlign: TextAlign.center,

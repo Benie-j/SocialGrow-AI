@@ -49,11 +49,14 @@ class DashboardPage extends StatelessWidget {
   /// Tirer pour actualiser ; absent = pas d'actualisation.
   final Future<void> Function()? onRefresh;
 
-  /// Seule la connexion d'une Page se déduit des données : les autres étapes
-  /// restent à faire tant qu'aucune donnée ne prouve le contraire.
+  /// La connexion d'une Page et la stratégie éditoriale se déduisent des
+  /// données : les autres étapes restent à faire tant qu'aucune donnée ne
+  /// prouve le contraire.
   static List<_Step> _stepsFor(WorkspaceOverview? overview) {
     final pageDone = overview?.hasConnectedPage ?? false;
     final pages = overview?.activePageCount ?? 0;
+    final strategyDone = overview?.hasEditorialStrategy ?? false;
+    final aiDone = overview?.hasAiActivity ?? false;
 
     return [
       const _Step(
@@ -68,7 +71,23 @@ class DashboardPage extends StatelessWidget {
             : 'Choisis la Page à faire grandir.',
         done: pageDone,
       ),
-      ..._remainingSteps,
+      _Step(
+        title: 'Définir ta stratégie éditoriale',
+        hint: strategyDone
+            ? 'Activité, piliers et voix de marque enregistrés.'
+            : 'Activité, piliers de contenu et voix de marque.',
+        done: strategyDone,
+        tab: 4,
+      ),
+      _Step(
+        title: 'Activer l’assistant IA',
+        hint: aiDone
+            ? 'Groq a déjà généré du contenu pour ton espace.'
+            : 'Génère un premier texte dans le Studio : '
+                'Groq prépare tes publications.',
+        done: aiDone,
+        tab: aiDone ? null : 1,
+      ),
     ];
   }
 
@@ -78,18 +97,6 @@ class DashboardPage extends StatelessWidget {
     }
     return pages > 1 ? '$name et ${pages - 1} autre(s) Page(s).' : name;
   }
-
-  static const _remainingSteps = [
-    _Step(
-      title: 'Définir ta stratégie éditoriale',
-      hint: 'Fréquence, horaires, public et contenus.',
-      tab: 4,
-    ),
-    _Step(
-      title: 'Activer l’assistant IA',
-      hint: 'Groq prépare tes publications.',
-    ),
-  ];
 
   static String greetingFor(int hour) {
     if (hour >= 5 && hour < 12) return 'Bonjour';
@@ -174,8 +181,7 @@ class DashboardPage extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         Text(
-          'Les fonctions Facebook et Groq seront activées dans les '
-          'prochaines étapes.',
+          'Ton assistant IA s’active dès la première génération réussie.',
           textAlign: TextAlign.center,
           style: theme.textTheme.bodySmall?.copyWith(color: p.textSecondary),
         ),
@@ -822,7 +828,7 @@ class _SpaceGrid extends StatelessWidget {
                 tint: p.accentWarm,
                 title: 'Agenda',
                 subtitle: 'Planifie tes posts.',
-                status: const SgPill(label: 'Bientôt'),
+                status: SgPill(label: 'Disponible', color: p.success),
                 onTap: navigate == null ? null : () => navigate(2),
               ),
             ],
@@ -832,13 +838,14 @@ class _SpaceGrid extends StatelessWidget {
         Expanded(
           child: Column(
             children: [
-              const _SpaceTile(
+              _SpaceTile(
                 height: _short,
                 icon: Icons.edit_note,
-                tint: null,
+                tint: p.accent,
                 title: 'Publications',
                 subtitle: 'Tes contenus ici.',
-                status: SgPill(label: 'Bientôt'),
+                status: SgPill(label: 'Disponible', color: p.success),
+                onTap: navigate == null ? null : () => navigate(1),
               ),
               const SizedBox(height: 12),
               _SpaceTile(
@@ -847,7 +854,7 @@ class _SpaceGrid extends StatelessWidget {
                 tint: p.accent,
                 title: 'Statistiques',
                 subtitle: 'Mesure ta croissance, semaine après semaine.',
-                status: const SgPill(label: 'Bientôt'),
+                status: SgPill(label: 'Disponible', color: p.success),
                 onTap: navigate == null ? null : () => navigate(3),
               ),
             ],

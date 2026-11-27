@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/theme/sg_palette.dart';
 import '../../../data/publication_settings_repository.dart';
+import '../../../data/schedule.dart';
 
 class StudioPage extends StatefulWidget {
   const StudioPage({super.key});
@@ -34,6 +35,8 @@ class _StudioPageState extends State<StudioPage> {
   bool _generatingVariants = false;
   bool _saving = false;
   bool _publishing = false;
+  bool _scheduling = false;
+  bool _canEdit = false;
   int _view = 0;
   String _filter = 'all';
   String _format = 'post';
@@ -77,6 +80,7 @@ class _StudioPageState extends State<StudioPage> {
         _workspaceId = access.workspaceId;
         _workspaceName = access.workspaceName;
         _canDelete = access.role == 'owner' || access.role == 'admin';
+        _canEdit = _canDelete || access.role == 'editor';
         _pages = pageRows;
         _posts = posts.map((e) => Map<String, dynamic>.from(e)).toList();
         _selectedPageId ??= pageRows.isNotEmpty ? pageRows.first['id'].toString() : null;
@@ -511,6 +515,134 @@ class _StudioPageState extends State<StudioPage> {
     }
   }
 
+  Future<void> _schedule() async {
+    if (_selectedPageId == null) {
+      _message('Connecte d’abord une Page Facebook dans les paramètres.');
+      return;
+    }
+    if (_editor.text.trim().isEmpty) {
+      _message('Écris ou génère une publication avant de la programmer.');
+      return;
+    }
+
+    final now = DateTime.now();
+    final suggestion = now.add(const Duration(hours: 1));
+    final date = await showDatePicker(
+      context: context,
+      initialDate: suggestion,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: now.add(const Duration(days: kMaxScheduleDays)),
+      helpText: 'Jour de publication',
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(suggestion),
+      helpText: 'Heure de publication',
+    );
+    if (time == null || !mounted) return;
+
+    final at = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    final problem = validateScheduleTime(at, DateTime.now());
+    if (problem != null) {
+      _message(problem);
+      return;
+    }
+
+    final page = _pages.firstWhere(
+      (p) => p['id'].toString() == _selectedPageId,
+    );
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Programmer la publication ?'),
+        content: Text(
+          'Elle sera publiée automatiquement sur « ${page['page_name']} » le '
+          '${formatScheduleWhen(at)}. Tu peux annuler la planification depuis '
+          'la Bibliothèque tant qu’elle n’est pas partie.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Retour'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Programmer'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final postId = await _saveDraft(quiet: true);
+    if (postId == null) return;
+
+    setState(() {
+      _scheduling = true;
+      _error = null;
+    });
+    try {
+      await _client.from('posts').update({
+        'status': 'scheduled',
+        'scheduled_at': at.toUtc().toIso8601String(),
+        'facebook_page_id': _selectedPageId,
+        'error_message': null,
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      }).eq('id', postId).eq('workspace_id', _workspaceId!);
+      if (!mounted) return;
+      _message('Publication programmée pour ${formatScheduleWhen(at)}.');
+      setState(() {
+        _currentPostId = null;
+        _currentImageUrl = null;
+        _currentImageCredit = null;
+        _currentImageSourceUrl = null;
+        _editor.clear();
+        _idea.clear();
+        _filter = 'scheduled';
+        _view = 1;
+      });
+      await _loadPosts();
+    } catch (e) {
+      if (mounted) setState(() => _error = _readableError(e));
+      await _loadPosts();
+    } finally {
+      if (mounted) setState(() => _scheduling = false);
+    }
+  }
+
+  Future<void> _cancelSchedule(Map<String, dynamic> post) async {
+    if (post['status'] != 'scheduled' || _workspaceId == null) return;
+    try {
+      // Compare-and-set : sans effet si le serveur vient de la prendre en charge.
+      final changed = await _client
+          .from('posts')
+          .update({
+            'status': 'draft',
+            'scheduled_at': null,
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('id', post['id'].toString())
+          .eq('workspace_id', _workspaceId!)
+          .eq('status', 'scheduled')
+          .select('id');
+      _message(changed.isEmpty
+          ? 'Cette publication est déjà partie ou a changé d’état.'
+          : 'Planification annulée : la publication est redevenue un brouillon.');
+      await _loadPosts();
+    } catch (e) {
+      _message('Annulation impossible : ${_readableError(e)}');
+    }
+  }
+
+  String? _scheduledLabel(Map<String, dynamic> post) {
+    final raw = post['scheduled_at'];
+    if (post['status'] != 'scheduled' || raw is! String) return null;
+    final at = DateTime.tryParse(raw)?.toLocal();
+    return at == null ? null : 'Prévue le ${formatScheduleWhen(at)}';
+  }
+
+
   Future<void> _loadPosts() async {
     if (_workspaceId == null) return;
     final rows = await _client
@@ -894,6 +1026,31 @@ class _StudioPageState extends State<StudioPage> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _saving ||
+                            _publishing ||
+                            _scheduling ||
+                            _pages.isEmpty ||
+                            !_canEdit
+                        ? null
+                        : _schedule,
+                    icon: _scheduling
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.schedule),
+                    label: Text(
+                      _scheduling
+                          ? 'Programmation…'
+                          : 'Programmer la publication',
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -972,6 +1129,22 @@ class _StudioPageState extends State<StudioPage> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: p.textSecondary),
                   ),
+                  if (_scheduledLabel(post) != null) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(Icons.schedule, size: 15, color: p.textSecondary),
+                        const SizedBox(width: 6),
+                        Text(
+                          _scheduledLabel(post)!,
+                          style: TextStyle(
+                            color: p.textSecondary,
+                            fontSize: 12.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   if (post['error_message'] != null && post['status'] == 'failed') ...[
                     const SizedBox(height: 6),
                     Text(post['error_message'].toString(), style: TextStyle(color: p.accentWarm, fontSize: 12)),
@@ -985,6 +1158,12 @@ class _StudioPageState extends State<StudioPage> {
                         label: const Text('Ouvrir'),
                       ),
                       const Spacer(),
+                      if (post['status'] == 'scheduled' && _canEdit)
+                        TextButton.icon(
+                          onPressed: () => _cancelSchedule(post),
+                          icon: const Icon(Icons.event_busy, size: 17),
+                          label: const Text('Annuler'),
+                        ),
                       if (post['status'] == 'draft' && _canDelete)
                         IconButton(
                           tooltip: 'Supprimer le brouillon',

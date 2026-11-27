@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'agenda.dart';
 import 'publication_settings.dart';
 
 /// Espace de travail de l’utilisateur connecté et son rôle.
@@ -106,6 +107,9 @@ class SupabasePublicationSettingsRepository
 String describeError(Object error) {
   if (error is NoWorkspaceException) {
     return 'Aucun espace de travail n’est associé à ton compte.';
+  }
+  if (error is AgendaPermissionException) {
+    return 'Ton rôle ne permet pas de modifier cette publication.';
   }
   if (error is PostgrestException) {
     return 'Erreur Supabase : ${error.message}';

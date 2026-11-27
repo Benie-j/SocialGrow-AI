@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
-/// Palette « Sève » de SocialGrow AI : papier chaud et encre en mode clair,
+/// Palette « Sève » de JUN AI : papier chaud et encre en mode clair,
 /// nuit de serre en mode sombre, avec un vert citron comme signal d'énergie.
 class SgPalette {
   const SgPalette._({

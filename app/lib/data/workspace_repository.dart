@@ -34,20 +34,57 @@ class SupabaseWorkspaceRepository implements WorkspaceRepository {
           .eq('workspace_id', access.workspaceId)
           .eq('is_active', true)
           .order('connected_at', ascending: true),
+      _hasStrategy(access.workspaceId),
+      _hasAiActivity(access.workspaceId),
     ]);
 
     final profile = results[0] as Map<String, dynamic>?;
     final pages = results[1] as List<dynamic>;
+    final hasStrategy = results[2] as bool;
+    final hasAi = results[3] as bool;
 
     return WorkspaceOverview(
       workspaceId: access.workspaceId,
       workspaceName: access.workspaceName,
       role: access.role,
       activePageCount: pages.length,
+      hasEditorialStrategy: hasStrategy,
+      hasAiActivity: hasAi,
       pageName: pages.isEmpty ? null : _text((pages.first as Map)['page_name']),
       displayName: _text(profile?['display_name']),
       avatarUrl: _text(profile?['avatar_url']),
     );
+  }
+
+  /// La stratégie est secondaire : une erreur de lecture ne bloque pas l'espace
+  /// (l'étape reste simplement « à faire »).
+  Future<bool> _hasStrategy(String workspaceId) async {
+    try {
+      final row = await _client
+          .from('editorial_strategy')
+          .select('business_description')
+          .eq('workspace_id', workspaceId)
+          .maybeSingle();
+      return _text(row?['business_description']) != null;
+    } on PostgrestException {
+      return false;
+    }
+  }
+
+  /// L'assistant est « activé » quand une génération a réellement réussi.
+  /// Secondaire : une erreur de lecture laisse simplement l'étape à faire.
+  Future<bool> _hasAiActivity(String workspaceId) async {
+    try {
+      final rows = await _client
+          .from('ai_generation_logs')
+          .select('id')
+          .eq('workspace_id', workspaceId)
+          .eq('success', true)
+          .limit(1);
+      return rows.isNotEmpty;
+    } on PostgrestException {
+      return false;
+    }
   }
 
   /// Le profil est secondaire : une erreur de lecture ne bloque pas l'espace.

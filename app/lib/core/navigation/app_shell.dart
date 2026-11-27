@@ -1,13 +1,22 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../../data/facebook_connection.dart';
+import '../../data/notifications_repository.dart';
 import '../../data/publication_settings_repository.dart';
+import '../../data/agenda_repository.dart';
+import '../../data/stats_repository.dart';
 import '../../data/workspace_overview.dart';
 import '../../data/workspace_repository.dart';
 import '../../features/dashboard/presentation/dashboard_page.dart';
-import '../../features/preview/presentation/feature_preview_page.dart';
+import '../../features/agenda/presentation/agenda_page.dart';
+import '../../features/stats/presentation/stats_page.dart';
 import '../../features/studio/presentation/studio_page.dart';
+import '../../features/push/presentation/push_prompt.dart';
+import '../../features/settings/presentation/notifications_page.dart';
 import '../../features/settings/presentation/settings_page.dart';
+import '../push/push_service.dart';
 import '../theme/sg_palette.dart';
 import '../widgets/sg_background.dart';
 
@@ -22,6 +31,10 @@ class AppShell extends StatefulWidget {
     this.workspaceRepository,
     this.facebookRepository,
     this.studioPage,
+    this.agendaRepository,
+    this.statsRepository,
+    this.pushService,
+    this.notificationsRepository,
   });
 
   final Future<void> Function() onSignOut;
@@ -29,6 +42,12 @@ class AppShell extends StatefulWidget {
   final String? userName;
   final String? userAvatarUrl;
   final Widget? studioPage;
+
+  /// Données de l'agenda ; sans dépôt (tests), l'agenda s'affiche vide.
+  final AgendaRepository? agendaRepository;
+
+  /// Données de l'onglet Statistiques ; sans dépôt (tests), il reste vide.
+  final StatsRepository? statsRepository;
   /// Injectable pour les tests ; par défaut, Supabase.
   final PublicationSettingsRepository? settingsRepository;
 
@@ -38,6 +57,12 @@ class AppShell extends StatefulWidget {
   /// Injectable pour les tests ; sans dépôt, « Connexion Facebook » reste
   /// indisponible.
   final FacebookConnectionRepository? facebookRepository;
+
+  /// Alertes instantanées (push) ; sans service (tests), rien n'est proposé.
+  final PushService? pushService;
+
+  /// Injectable pour les tests ; par défaut, Supabase.
+  final NotificationsRepository? notificationsRepository;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -58,10 +83,17 @@ class _Destination {
 class _AppShellState extends State<AppShell> {
   int _index = 0;
   WorkspaceState _workspace = const WorkspaceState.idle();
+  StreamSubscription<void>? _opensSubscription;
 
   @override
   void initState() {
     super.initState();
+
+    final push = widget.pushService;
+    if (push != null) {
+      _opensSubscription = push.opens.listen((_) => _openNotifications());
+      WidgetsBinding.instance.addPostFrameCallback((_) => _startPush(push));
+    }
     if (widget.workspaceRepository != null) {
       _workspace = const WorkspaceState.loading();
       _fetchWorkspace();
@@ -117,6 +149,41 @@ class _AppShellState extends State<AppShell> {
     ),
   ];
 
+  @override
+  void dispose() {
+    _opensSubscription?.cancel();
+    super.dispose();
+  }
+
+  /// Au démarrage : enregistre le téléphone s'il est déjà autorisé, ouvre les
+  /// notifications si l'appli a été lancée par un tap, sinon propose
+  /// d'activer les alertes instantanées.
+  Future<void> _startPush(PushService push) async {
+    await push.syncIfEnabled();
+    if (!mounted) return;
+
+    if (push.takePendingOpen()) {
+      _openNotifications();
+      return;
+    }
+    if (await push.shouldPrompt()) {
+      if (!mounted) return;
+      await showPushPrompt(context, push);
+    }
+  }
+
+  void _openNotifications() {
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => NotificationsPage(
+          repository: widget.notificationsRepository,
+          pushService: widget.pushService,
+        ),
+      ),
+    );
+  }
+
   void _select(int value) {
     if (value == _index) return;
     setState(() => _index = value);
@@ -136,56 +203,19 @@ class _AppShellState extends State<AppShell> {
         onSignOut: widget.onSignOut,
       ),
       widget.studioPage ?? const StudioPage(),
-      const FeaturePreviewPage(
-        title: 'Agenda',
-        description: 'Organise et retrouve tes prochaines publications.',
-        icon: Icons.calendar_month,
-        highlights: [
-          FeatureHighlight(
-            icon: Icons.edit_calendar_outlined,
-            title: 'Vue de la semaine',
-            text: 'Toutes tes publications planifiées d’un coup d’œil.',
-          ),
-          FeatureHighlight(
-            icon: Icons.schedule,
-            title: 'Créneaux alignés',
-            text: 'Des horaires cohérents avec tes réglages de publication.',
-          ),
-          FeatureHighlight(
-            icon: Icons.swap_horiz,
-            title: 'Reprogrammation simple',
-            text: 'Déplace une publication sans tout refaire.',
-          ),
-        ],
+      AgendaPage(
+        repository: widget.agendaRepository,
+        onOpenStudio: () => _select(1),
       ),
-      const FeaturePreviewPage(
-        title: 'Statistiques',
-        description: 'Les performances de ta Page, au même endroit.',
-        icon: Icons.insights,
-        highlights: [
-          FeatureHighlight(
-            icon: Icons.query_stats,
-            title: 'Performances réelles',
-            text: 'Portée et engagement de ta Page, issus de Meta.',
-          ),
-          FeatureHighlight(
-            icon: Icons.leaderboard_outlined,
-            title: 'Meilleurs contenus',
-            text: 'Ce qui fonctionne vraiment auprès de ta communauté.',
-          ),
-          FeatureHighlight(
-            icon: Icons.trending_up,
-            title: 'Évolution',
-            text: 'Suis ta croissance semaine après semaine.',
-          ),
-        ],
-      ),
+      StatsPage(repository: widget.statsRepository),
       SettingsPage(
         repository: widget.settingsRepository,
         onSignOut: widget.onSignOut,
         facebookRepository: widget.facebookRepository,
         workspace: _workspace.overview,
         onWorkspaceChanged: _fetchWorkspace,
+        notificationsRepository: widget.notificationsRepository,
+        pushService: widget.pushService,
       ),
     ];
 

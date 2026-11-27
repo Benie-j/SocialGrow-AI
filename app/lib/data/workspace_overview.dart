@@ -5,6 +5,8 @@ class WorkspaceOverview {
     required this.workspaceName,
     required this.role,
     required this.activePageCount,
+    this.hasEditorialStrategy = false,
+    this.hasAiActivity = false,
     this.pageName,
     this.displayName,
     this.avatarUrl,
@@ -18,6 +20,14 @@ class WorkspaceOverview {
 
   /// Nombre de Pages Facebook actives connectées à l'espace.
   final int activePageCount;
+
+  /// Vrai quand la stratégie éditoriale de l'espace est renseignée
+  /// (ligne enregistrée avec une description de l'activité).
+  final bool hasEditorialStrategy;
+
+  /// Vrai quand au moins une génération Groq a réussi pour l'espace
+  /// (journal `ai_generation_logs`) : preuve que l'assistant IA fonctionne.
+  final bool hasAiActivity;
 
   /// Nom de la Page connectée la plus ancienne, s'il y en a une.
   final String? pageName;

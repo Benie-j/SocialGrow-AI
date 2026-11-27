@@ -25,7 +25,11 @@ class EditorialStrategyPage extends StatefulWidget {
     super.key,
     this.settingsRepository,
     this.repository,
+    this.onSaved,
   });
+
+  /// Appelée après chaque enregistrement réussi (synchronise le tableau de bord).
+  final Future<void> Function()? onSaved;
 
   /// Espace, rôle, fréquence et public cible ; par défaut, Supabase.
   final PublicationSettingsRepository? settingsRepository;
@@ -139,6 +143,7 @@ class _EditorialStrategyPageState extends State<EditorialStrategyPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Stratégie enregistrée.')),
       );
+      await widget.onSaved?.call();
     } catch (error) {
       if (!mounted) {
         return;
