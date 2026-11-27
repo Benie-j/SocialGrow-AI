@@ -61,7 +61,11 @@ jobs:
           set +e
           flutter analyze 2>&1 | tee /tmp/analyze.txt
           code=${PIPESTATUS[0]}
-          grep -E "^\s*(error|warning|info) " /tmp/analyze.txt | head -30 | while read -r l; do echo "::error title=flutter analyze::$l"; done
+          if [ "$code" -ne 0 ]; then
+            grep -E "^\s*(error|warning|info) " /tmp/analyze.txt | head -40 | cut -c1-260 > /tmp/analyze_fail.txt
+            msg=$(sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g' /tmp/analyze_fail.txt)
+            echo "::error title=flutter analyze::$msg"
+          fi
           exit $code
 
       - name: Tests
@@ -70,7 +74,9 @@ jobs:
           flutter test 2>&1 | tee /tmp/test.txt
           code=${PIPESTATUS[0]}
           if [ "$code" -ne 0 ]; then
-            grep -E "\[E\]|EXCEPTION CAUGHT|overflowed|Expected:|Actual:|Which:" /tmp/test.txt | head -30 | cut -c1-300 | while read -r l; do echo "::error title=flutter test::$l"; done
+            awk '/\[E\]/{print} /EXCEPTION CAUGHT/{c=8} c>0{print; c--}' /tmp/test.txt | head -90 | cut -c1-240 > /tmp/test_fail.txt
+            msg=$(sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g' /tmp/test_fail.txt)
+            echo "::error title=flutter test::$msg"
           fi
           exit $code
 
