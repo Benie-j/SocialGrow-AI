@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -135,6 +136,11 @@ class FirebasePushService implements PushService {
 
       FirebaseMessaging.onMessage.listen(_showInForeground);
       FirebaseMessaging.onMessageOpenedApp.listen((_) => _opens.add(null));
+      // firebase_messaging 17 déprécie les jetons FCM au profit des
+      // identifiants d'installation (register/onRegistered). `send-push`
+      // envoie encore à un jeton FCM : on garde cette API, qui fonctionne,
+      // jusqu'à la migration conjointe du serveur.
+      // ignore: deprecated_member_use
       FirebaseMessaging.instance.onTokenRefresh.listen(_registerToken);
 
       final initial = await FirebaseMessaging.instance.getInitialMessage();
@@ -180,6 +186,7 @@ class FirebasePushService implements PushService {
       case AuthorizationStatus.provisional:
         return PushStatus.enabled;
       case AuthorizationStatus.denied:
+      case AuthorizationStatus.deniedPermanently:
       case AuthorizationStatus.notDetermined:
         // Android ne distingue pas « jamais demandé » de « refusé » : on
         // retient nous-mêmes si la demande a déjà été faite.
@@ -239,6 +246,7 @@ class FirebasePushService implements PushService {
   }
 
   Future<void> _registerCurrentToken() async {
+    // ignore: deprecated_member_use
     final token = await FirebaseMessaging.instance.getToken();
     if (token != null) await _registerToken(token);
   }
@@ -259,6 +267,7 @@ class FirebasePushService implements PushService {
   Future<void> unregister() async {
     try {
       if (!await _ensureReady()) return;
+      // ignore: deprecated_member_use
       final token = await FirebaseMessaging.instance.getToken();
       if (token != null && _client.auth.currentSession != null) {
         await _client.functions.invoke(
@@ -267,6 +276,7 @@ class FirebasePushService implements PushService {
         );
       }
       // Un nouveau jeton sera créé pour le prochain compte de ce téléphone.
+      // ignore: deprecated_member_use
       await FirebaseMessaging.instance.deleteToken();
     } catch (_) {
       // La déconnexion ne doit jamais être bloquée par les alertes.
