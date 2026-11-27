@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/brand/jun_mark.dart';
+import '../../../core/push/push_service.dart';
 import '../../../core/theme/sg_palette.dart';
 import '../../../core/widgets/glass_panel.dart';
 import '../../../core/widgets/page_header.dart';
@@ -92,6 +93,7 @@ class SettingsPage extends StatelessWidget {
     this.onWorkspaceChanged,
     this.accountRepository,
     this.notificationsRepository,
+    this.pushService,
   });
 
   /// Injectable pour les tests ; par défaut, Supabase.
@@ -99,6 +101,9 @@ class SettingsPage extends StatelessWidget {
 
   /// Injectable pour les tests ; par défaut, Supabase.
   final NotificationsRepository? notificationsRepository;
+
+  /// Alertes instantanées (push) ; sans service, la carte reste masquée.
+  final PushService? pushService;
 
   /// Injectable pour les tests ; par défaut, Supabase.
   final PublicationSettingsRepository? repository;
@@ -172,7 +177,10 @@ class SettingsPage extends StatelessWidget {
     } else if (entry.title == 'Notifications') {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => NotificationsPage(repository: notificationsRepository),
+          builder: (_) => NotificationsPage(
+            repository: notificationsRepository,
+            pushService: pushService,
+          ),
         ),
       );
     } else if (entry.title == 'À propos') {

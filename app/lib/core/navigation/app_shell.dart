@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../../data/facebook_connection.dart';
+import '../../data/notifications_repository.dart';
 import '../../data/publication_settings_repository.dart';
 import '../../data/agenda_repository.dart';
 import '../../data/stats_repository.dart';
@@ -10,7 +13,10 @@ import '../../features/dashboard/presentation/dashboard_page.dart';
 import '../../features/agenda/presentation/agenda_page.dart';
 import '../../features/stats/presentation/stats_page.dart';
 import '../../features/studio/presentation/studio_page.dart';
+import '../../features/push/presentation/push_prompt.dart';
+import '../../features/settings/presentation/notifications_page.dart';
 import '../../features/settings/presentation/settings_page.dart';
+import '../push/push_service.dart';
 import '../theme/sg_palette.dart';
 import '../widgets/sg_background.dart';
 
@@ -27,6 +33,8 @@ class AppShell extends StatefulWidget {
     this.studioPage,
     this.agendaRepository,
     this.statsRepository,
+    this.pushService,
+    this.notificationsRepository,
   });
 
   final Future<void> Function() onSignOut;
@@ -50,6 +58,12 @@ class AppShell extends StatefulWidget {
   /// indisponible.
   final FacebookConnectionRepository? facebookRepository;
 
+  /// Alertes instantanées (push) ; sans service (tests), rien n'est proposé.
+  final PushService? pushService;
+
+  /// Injectable pour les tests ; par défaut, Supabase.
+  final NotificationsRepository? notificationsRepository;
+
   @override
   State<AppShell> createState() => _AppShellState();
 }
@@ -69,10 +83,17 @@ class _Destination {
 class _AppShellState extends State<AppShell> {
   int _index = 0;
   WorkspaceState _workspace = const WorkspaceState.idle();
+  StreamSubscription<void>? _opensSubscription;
 
   @override
   void initState() {
     super.initState();
+
+    final push = widget.pushService;
+    if (push != null) {
+      _opensSubscription = push.opens.listen((_) => _openNotifications());
+      WidgetsBinding.instance.addPostFrameCallback((_) => _startPush(push));
+    }
     if (widget.workspaceRepository != null) {
       _workspace = const WorkspaceState.loading();
       _fetchWorkspace();
@@ -128,6 +149,41 @@ class _AppShellState extends State<AppShell> {
     ),
   ];
 
+  @override
+  void dispose() {
+    _opensSubscription?.cancel();
+    super.dispose();
+  }
+
+  /// Au démarrage : enregistre le téléphone s'il est déjà autorisé, ouvre les
+  /// notifications si l'appli a été lancée par un tap, sinon propose
+  /// d'activer les alertes instantanées.
+  Future<void> _startPush(PushService push) async {
+    await push.syncIfEnabled();
+    if (!mounted) return;
+
+    if (push.takePendingOpen()) {
+      _openNotifications();
+      return;
+    }
+    if (await push.shouldPrompt()) {
+      if (!mounted) return;
+      await showPushPrompt(context, push);
+    }
+  }
+
+  void _openNotifications() {
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => NotificationsPage(
+          repository: widget.notificationsRepository,
+          pushService: widget.pushService,
+        ),
+      ),
+    );
+  }
+
   void _select(int value) {
     if (value == _index) return;
     setState(() => _index = value);
@@ -158,6 +214,8 @@ class _AppShellState extends State<AppShell> {
         facebookRepository: widget.facebookRepository,
         workspace: _workspace.overview,
         onWorkspaceChanged: _fetchWorkspace,
+        notificationsRepository: widget.notificationsRepository,
+        pushService: widget.pushService,
       ),
     ];
 

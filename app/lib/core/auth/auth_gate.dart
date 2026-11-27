@@ -4,11 +4,13 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/agenda_repository.dart';
+import '../../data/notifications_repository.dart';
 import '../../data/facebook_connection.dart';
 import '../../data/stats_repository.dart';
 import '../../data/workspace_repository.dart';
 import '../../features/auth/presentation/auth_page.dart';
 import '../navigation/app_shell.dart';
+import '../push/push_service.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -19,6 +21,7 @@ class AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<AuthGate> {
   final SupabaseClient _client = Supabase.instance.client;
+  late final PushService _push = FirebasePushService(_client);
 
   Session? _session;
   StreamSubscription<AuthState>? _subscription;
@@ -63,10 +66,14 @@ class _AuthGateState extends State<AuthGate> {
       facebookRepository: SupabaseFacebookConnectionRepository(_client),
       agendaRepository: SupabaseAgendaRepository(_client),
       statsRepository: SupabaseStatsRepository(_client),
+      notificationsRepository: SupabaseNotificationsRepository(_client),
+      pushService: _push,
       userEmail: _client.auth.currentUser?.email,
       userName: _metadata('full_name') ?? _metadata('name'),
       userAvatarUrl: _metadata('avatar_url') ?? _metadata('picture'),
       onSignOut: () async {
+        // Retire ce téléphone du compte avant de couper la session.
+        await _push.unregister();
         await _client.auth.signOut();
       },
     );

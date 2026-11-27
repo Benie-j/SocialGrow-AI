@@ -39,6 +39,9 @@ jobs:
       - name: Nommer l'application JUN AI
         run: python ../scripts/configure_android_branding.py android/app/src/main/AndroidManifest.xml
 
+      - name: Préparer Android pour les notifications push
+        run: python ../scripts/configure_android_push.py android branding/notification
+
       - name: Vérifier le manifeste Android
         run: |
           grep -E "INTERNET|flutter_deeplinking|intent-filter|android:scheme|android:host|launchMode|android:exported" android/app/src/main/AndroidManifest.xml | sed 's/^ *//' | while read -r l; do echo "::notice title=manifest::$l"; done
@@ -80,10 +83,24 @@ jobs:
           fi
           exit $code
 
+      - name: Configuration Firebase (optionnelle)
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          : > /tmp/dart_defines.txt
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "::notice title=push::Secret GOOGLE_SERVICES_JSON absent : APK construit sans alertes instantanées"
+          else
+            if [ -f android/app/build.gradle.kts ]; then G=android/app/build.gradle.kts; else G=android/app/build.gradle; fi
+            python ../scripts/firebase_dart_defines.py "$G" --masks
+            python ../scripts/firebase_dart_defines.py "$G" > /tmp/dart_defines.txt
+            echo "::notice title=push::Firebase configuré : alertes instantanées incluses dans l'APK"
+          fi
+
       - name: Compiler les APK release (un par architecture)
         run: |
           set +e
-          flutter build apk --release --split-per-abi 2>&1 | tee /tmp/build.txt
+          flutter build apk --release --split-per-abi $(cat /tmp/dart_defines.txt) 2>&1 | tee /tmp/build.txt
           code=${PIPESTATUS[0]}
           if [ "$code" -ne 0 ]; then
             grep -nE "error|Error|FAILURE|What went wrong|Execution failed|Caused by|e: " /tmp/build.txt | head -20 | cut -c1-400 | while read -r l; do echo "::error title=flutter build::$l"; done

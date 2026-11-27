@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/push/push_service.dart';
 import '../../../core/theme/sg_palette.dart';
 import '../../../core/widgets/glass_panel.dart';
 import '../../../core/widgets/sg_pill.dart';
@@ -12,10 +13,13 @@ import 'settings_widgets.dart';
 /// Écran « Notifications » : alertes choisies par l'utilisateur et historique
 /// réel des notifications de l'espace de travail.
 class NotificationsPage extends StatefulWidget {
-  const NotificationsPage({super.key, this.repository});
+  const NotificationsPage({super.key, this.repository, this.pushService});
 
   /// Injectable pour les tests ; par défaut, Supabase.
   final NotificationsRepository? repository;
+
+  /// Alertes instantanées ; sans service, la carte n'est pas affichée.
+  final PushService? pushService;
 
   @override
   State<NotificationsPage> createState() => _NotificationsPageState();
@@ -28,6 +32,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
   Object? _loadError;
   bool _loading = true;
   bool _markingAll = false;
+  PushStatus? _pushStatus;
+  bool _pushBusy = false;
 
   @override
   void initState() {
@@ -35,6 +41,37 @@ class _NotificationsPageState extends State<NotificationsPage> {
     _repo = widget.repository ??
         SupabaseNotificationsRepository(Supabase.instance.client);
     _load();
+    _loadPushStatus();
+  }
+
+  Future<void> _loadPushStatus() async {
+    final service = widget.pushService;
+    if (service == null) return;
+    try {
+      final status = await service.status();
+      if (!mounted) return;
+      setState(() => _pushStatus = status);
+    } catch (_) {
+      // La carte reste masquée si l'état est inconnu.
+    }
+  }
+
+  Future<void> _enablePush() async {
+    final service = widget.pushService;
+    if (service == null) return;
+    setState(() => _pushBusy = true);
+    try {
+      final status = await service.enable();
+      if (!mounted) return;
+      setState(() {
+        _pushStatus = status;
+        _pushBusy = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _pushBusy = false);
+      _toast('Impossible d’activer les alertes pour le moment.');
+    }
   }
 
   Future<void> _load() async {
@@ -191,6 +228,14 @@ class _NotificationsPageState extends State<NotificationsPage> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: EdgeInsets.fromLTRB(20, 12, 20, bottom + 28),
       children: [
+        if (_pushStatus != null && _pushStatus != PushStatus.unavailable) ...[
+          _PushCard(
+            status: _pushStatus!,
+            busy: _pushBusy,
+            onEnable: _enablePush,
+          ),
+          const SizedBox(height: 14),
+        ],
         GlassPanel(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -416,6 +461,116 @@ class _NotificationTile extends StatelessWidget {
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Alertes instantanées sur ce téléphone : état, activation et conseils.
+class _PushCard extends StatelessWidget {
+  const _PushCard({
+    required this.status,
+    required this.busy,
+    required this.onEnable,
+  });
+
+  final PushStatus status;
+  final bool busy;
+  final VoidCallback onEnable;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = SgPalette.of(context);
+    final theme = Theme.of(context);
+    final enabled = status == PushStatus.enabled;
+
+    final String message;
+    switch (status) {
+      case PushStatus.enabled:
+        message = 'Tu recevras chaque alerte sur ce téléphone, même écran '
+            'verrouillé ou application fermée.';
+      case PushStatus.denied:
+        message = 'Les notifications sont désactivées pour JUN AI. Active-les '
+            'dans Réglages Android › Applications › JUN AI › Notifications.';
+      case PushStatus.notDetermined:
+      case PushStatus.unavailable:
+        message = 'Reçois chaque alerte sur ton téléphone, même écran '
+            'verrouillé ou application fermée.';
+    }
+
+    return GlassPanel(
+      highlight: !enabled,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                enabled
+                    ? Icons.notifications_active
+                    : Icons.notifications_off_outlined,
+                color: enabled ? p.success : p.accentWarm,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Alertes instantanées',
+                  style: theme.textTheme.titleMedium,
+                ),
+              ),
+              if (enabled) SgPill(label: 'Activées', color: p.success),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: p.textSecondary,
+              height: 1.4,
+            ),
+          ),
+          if (!enabled) ...[
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: busy ? null : onEnable,
+              child: Text(
+                status == PushStatus.denied
+                    ? 'Réessayer'
+                    : 'Activer les alertes instantanées',
+              ),
+            ),
+          ],
+          if (enabled) ...[
+            const SizedBox(height: 6),
+            Theme(
+              data: theme.copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: EdgeInsets.zero,
+                title: Text(
+                  'Rien ne s’affiche ?',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                children: [
+                  Text(
+                    'Certains téléphones (Xiaomi, Tecno, Infinix, Oppo, '
+                    'Huawei…) ferment les applications en arrière-plan. '
+                    'Dans Réglages › Applications › JUN AI, autorise le '
+                    'démarrage automatique et mets la batterie sur « Sans '
+                    'restriction ».',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: p.textSecondary,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
