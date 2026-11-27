@@ -28,6 +28,7 @@ class _StudioPageState extends State<StudioPage> {
   bool _loading = true;
   bool _generating = false;
   bool _improving = false;
+  bool _generatingVariants = false;
   bool _saving = false;
   bool _publishing = false;
   int _view = 0;
@@ -191,6 +192,142 @@ class _StudioPageState extends State<StudioPage> {
     } finally {
       if (mounted) {
         setState(() => _improving = false);
+      }
+    }
+  }
+
+  Future<void> _generateVariants() async {
+    final original = _editor.text.trim();
+
+    if (original.length < 3) {
+      _message('Écris ou génère un texte avant de créer des variantes.');
+      return;
+    }
+
+    if (_workspaceId == null) return;
+
+    setState(() {
+      _generatingVariants = true;
+      _error = null;
+    });
+
+    try {
+      final response = await _client.functions.invoke(
+        'groq-generate-content',
+        body: {
+          'workspace_id': _workspaceId,
+          'topic': original,
+          'format': _format,
+          'action': 'variants',
+        },
+      );
+
+      final data = response.data;
+
+      if (data is! Map) {
+        throw Exception('Réponse du générateur invalide.');
+      }
+
+      if (data['error'] != null) {
+        throw Exception(data['message'] ?? data['error']);
+      }
+
+      final content = data['content'];
+
+      if (content is! String || content.trim().isEmpty) {
+        throw Exception('Aucune variante reçue.');
+      }
+
+      final matches = RegExp(
+        r'\[VARIANTE ([1-3])\]\s*([\s\S]*?)(?=\[VARIANTE [1-3]\]|$)',
+      ).allMatches(content);
+
+      final variants = <int, String>{};
+
+      for (final match in matches) {
+        final number = int.tryParse(match.group(1) ?? '');
+        final text = match.group(2)?.trim() ?? '';
+
+        if (number != null && text.isNotEmpty) {
+          variants[number] = text;
+        }
+      }
+
+      if (variants.length != 3 ||
+          !variants.containsKey(1) ||
+          !variants.containsKey(2) ||
+          !variants.containsKey(3)) {
+        throw Exception(
+          'Les trois variantes n’ont pas été reçues dans le format attendu. Réessaie.',
+        );
+      }
+
+      if (!mounted) return;
+
+      final selected = await showDialog<String>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Choisir une variante'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: variants.entries.map((entry) {
+                  return SimpleDialogOption(
+                    onPressed: () {
+                      Navigator.pop(dialogContext, entry.value);
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Variante ${entry.key}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            entry.value,
+                            maxLines: 5,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const Divider(),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Annuler'),
+            ),
+          ],
+        ),
+      );
+
+      if (selected != null && mounted) {
+        setState(() {
+          _editor.text = selected;
+          _currentPostId = null;
+        });
+
+        _message('Variante sélectionnée. Tu peux encore la modifier.');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = _readableError(e));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _generatingVariants = false);
       }
     }
   }
@@ -529,6 +666,29 @@ class _StudioPageState extends State<StudioPage> {
                       _improving
                           ? 'Amélioration en cours…'
                           : 'Améliorer avec JUN AI',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _generatingVariants ||
+                            _generating ||
+                            _improving
+                        ? null
+                        : _generateVariants,
+                    icon: _generatingVariants
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.compare_arrows),
+                    label: Text(
+                      _generatingVariants
+                          ? 'Création des variantes…'
+                          : 'Générer 3 variantes',
                     ),
                   ),
                 ),

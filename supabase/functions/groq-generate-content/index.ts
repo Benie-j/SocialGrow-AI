@@ -46,7 +46,7 @@ Deno.serve(async (req: Request) => {
     const format = String(body.format ?? "post");
     const action = String(body.action ?? "create");
 
-    if (action !== "create" && action !== "improve") {
+    if (!["create", "improve", "variants"].includes(action)) {
       return json({ error: "invalid_action", message: "Action non prise en charge." }, 400);
     }
 
@@ -108,7 +108,9 @@ Deno.serve(async (req: Request) => {
       "Tu es le directeur de création social media de JUN AI. Produis un contenu directement exploitable dans le format demandé.",
       action === "improve"
         ? "MISSION : améliore le texte fourni. Corrige les fautes, améliore la clarté, la fluidité, l'accroche et l'impact. Conserve le sujet, les informations vérifiables, l'intention et le sens. N'invente aucun fait. Ne réponds pas par une analyse : renvoie uniquement la version retravaillée."
-        : "MISSION : crée un nouveau contenu à partir du brief fourni.",
+        : action === "variants"
+          ? "MISSION : crée exactement trois variantes différentes du contenu fourni. Elles doivent conserver le même sujet, les mêmes faits et le même objectif, mais proposer des approches rédactionnelles distinctes. Respecte le format demandé pour chacune. N'invente aucune information. Sépare impérativement les propositions avec les marqueurs exacts [VARIANTE 1], [VARIANTE 2] et [VARIANTE 3]. N'ajoute aucun texte avant le premier marqueur ni après la troisième variante."
+          : "MISSION : crée un nouveau contenu à partir du brief fourni.",
       "Réponds dans la langue demandée. N'invente aucun chiffre, témoignage, résultat ou caractéristique produit.",
       "Respecte strictement le sujet et l'objectif. N'ajoute pas de faits non fournis.",
       `Réseau : Facebook. Objectif enregistré : ${objective}. Ton enregistré : ${tone}. Langue : ${language}.`,
@@ -124,7 +126,9 @@ Deno.serve(async (req: Request) => {
       `Hashtags : ${pub.hashtags_enabled === false ? "ne pas ajouter" : "oui, maximum " + String(pub.max_hashtags ?? 3)}.`,
       `Appel à l'action : ${pub.cta_enabled === false ? "non" : "oui si pertinent"}.`,
       `Format demandé : ${format}. ${formatInstructions[format]}`,
-      "Respecte la structure du format demandé. N’ajoute pas de commentaire sur ta méthode.",
+      action === "variants"
+        ? "Retourne exactement trois propositions avec les marqueurs [VARIANTE 1], [VARIANTE 2] et [VARIANTE 3]."
+        : "Respecte la structure du format demandé. N’ajoute pas de commentaire sur ta méthode.",
     ].join("\n");
 
     const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
