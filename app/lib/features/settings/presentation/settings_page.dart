@@ -8,12 +8,14 @@ import '../../../core/widgets/reveal.dart';
 import '../../../core/widgets/sg_pill.dart';
 import '../../../data/account_repository.dart';
 import '../../../data/facebook_connection.dart';
+import '../../../data/notifications_repository.dart';
 import '../../../data/publication_settings_repository.dart';
 import '../../../data/workspace_overview.dart';
 import 'account_page.dart';
 import 'editorial_strategy_page.dart';
 import 'facebook_connection_page.dart';
 import 'groq_settings_page.dart';
+import 'notifications_page.dart';
 import 'publication_settings_page.dart';
 
 class _Entry {
@@ -65,6 +67,7 @@ const _entries = [
     icon: Icons.notifications_none,
     title: 'Notifications',
     subtitle: 'Alertes de publication et d’erreur',
+    available: true,
   ),
   _Entry(
     icon: Icons.security_outlined,
@@ -88,10 +91,14 @@ class SettingsPage extends StatelessWidget {
     this.workspace,
     this.onWorkspaceChanged,
     this.accountRepository,
+    this.notificationsRepository,
   });
 
   /// Injectable pour les tests ; par défaut, Supabase.
   final AccountRepository? accountRepository;
+
+  /// Injectable pour les tests ; par défaut, Supabase.
+  final NotificationsRepository? notificationsRepository;
 
   /// Injectable pour les tests ; par défaut, Supabase.
   final PublicationSettingsRepository? repository;
@@ -160,6 +167,12 @@ class SettingsPage extends StatelessWidget {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => GroqSettingsPage(settingsRepository: repository),
+        ),
+      );
+    } else if (entry.title == 'Notifications') {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => NotificationsPage(repository: notificationsRepository),
         ),
       );
     } else if (entry.title == 'À propos') {
