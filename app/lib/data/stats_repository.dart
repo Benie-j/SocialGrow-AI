@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'publication_settings_repository.dart';
@@ -22,6 +24,9 @@ class StatsData {
 
 abstract class StatsRepository {
   Future<StatsData> load();
+
+  /// Émet un événement lorsqu'une donnée statistique change dans Supabase.
+  Stream<void> watch();
 }
 
 class SupabaseStatsRepository implements StatsRepository {
@@ -30,6 +35,58 @@ class SupabaseStatsRepository implements StatsRepository {
 
   final SupabaseClient _client;
   final DateTime Function() _now;
+
+  @override
+  Stream<void> watch() async* {
+    final access =
+        await SupabasePublicationSettingsRepository(_client).loadAccess();
+
+    final controller = StreamController<void>();
+    final channel = _client.channel('stats:${access.workspaceId}');
+
+    void onChange(PostgresChangePayload payload) {
+      if (!controller.isClosed) controller.add(null);
+    }
+
+    channel
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'posts',
+          callback: onChange,
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'facebook_pages',
+          callback: onChange,
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'page_insights',
+          callback: onChange,
+        )
+        .subscribe((status, error) {
+          if (status == RealtimeSubscribeStatus.subscribed) {
+            if (!controller.isClosed) controller.add(null);
+          } else if (status == RealtimeSubscribeStatus.channelError ||
+              status == RealtimeSubscribeStatus.timedOut) {
+            if (!controller.isClosed) {
+              controller.addError(
+                error ?? StateError('Connexion Realtime interrompue.'),
+              );
+            }
+          }
+        });
+
+    try {
+      yield* controller.stream;
+    } finally {
+      await _client.removeChannel(channel);
+      await controller.close();
+    }
+  }
 
   @override
   Future<StatsData> load() async {

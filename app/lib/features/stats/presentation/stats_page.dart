@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/theme/sg_palette.dart';
@@ -69,11 +71,41 @@ class _StatsPageState extends State<StatsPage> {
   StatsData? _data;
   String? _error;
   bool _loading = false;
+  StreamSubscription<void>? _changesSubscription;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _subscribeToChanges();
+  }
+
+  void _subscribeToChanges() {
+    final repo = widget.repository;
+    if (repo == null) return;
+
+    _changesSubscription = repo.watch().listen(
+      (_) {
+        _refreshTimer?.cancel();
+        _refreshTimer = Timer(const Duration(milliseconds: 250), () {
+          if (mounted) _load();
+        });
+      },
+      onError: (Object error) {
+        if (!mounted || _data != null) return;
+        setState(() {
+          _error = describeError(error);
+        });
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    _changesSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -110,7 +142,7 @@ class _StatsPageState extends State<StatsPage> {
       const SgReveal(
         child: SgPageHeader(
           title: 'Statistiques',
-          subtitle: 'Ce que tu publies, et ce que ta Page en retire.',
+          subtitle: 'Publications actualisées en direct ; données Facebook selon leur disponibilité chez Meta.',
         ),
       ),
       const SizedBox(height: 18),
