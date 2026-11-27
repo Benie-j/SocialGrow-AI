@@ -204,33 +204,42 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 ),
               ),
               const SizedBox(height: 8),
-              SwitchRow(
-                label: 'Publication réussie',
-                subtitle: 'Quand un post est publié sur ta Page.',
-                value: prefs.publishSuccess,
-                onChanged: (v) =>
-                    _setPreferences(prefs.copyWith(publishSuccess: v)),
-              ),
-              SwitchRow(
-                label: 'Échec de publication',
-                subtitle: 'Quand une publication n’a pas pu partir.',
-                value: prefs.publishFailure,
-                onChanged: (v) =>
-                    _setPreferences(prefs.copyWith(publishFailure: v)),
-              ),
-              SwitchRow(
-                label: 'Brouillon IA prêt',
-                subtitle: 'Quand JUN AI prépare un brouillon pour toi.',
-                value: prefs.aiDraftReady,
-                onChanged: (v) =>
-                    _setPreferences(prefs.copyWith(aiDraftReady: v)),
-              ),
-              SwitchRow(
-                label: 'Problème Facebook',
-                subtitle: 'Connexion expirée ou Page inaccessible.',
-                value: prefs.facebookIssue,
-                onChanged: (v) =>
-                    _setPreferences(prefs.copyWith(facebookIssue: v)),
+              // Les ListTile des interrupteurs ont besoin d'un Material sous
+              // le fond de la carte, sinon leurs effets seraient masqués.
+              Material(
+                type: MaterialType.transparency,
+                child: Column(
+                  children: [
+                SwitchRow(
+                  label: 'Publication réussie',
+                  subtitle: 'Quand un post est publié sur ta Page.',
+                  value: prefs.publishSuccess,
+                  onChanged: (v) =>
+                      _setPreferences(prefs.copyWith(publishSuccess: v)),
+                ),
+                SwitchRow(
+                  label: 'Échec de publication',
+                  subtitle: 'Quand une publication n’a pas pu partir.',
+                  value: prefs.publishFailure,
+                  onChanged: (v) =>
+                      _setPreferences(prefs.copyWith(publishFailure: v)),
+                ),
+                SwitchRow(
+                  label: 'Brouillon IA prêt',
+                  subtitle: 'Quand JUN AI prépare un brouillon pour toi.',
+                  value: prefs.aiDraftReady,
+                  onChanged: (v) =>
+                      _setPreferences(prefs.copyWith(aiDraftReady: v)),
+                ),
+                SwitchRow(
+                  label: 'Problème Facebook',
+                  subtitle: 'Connexion expirée ou Page inaccessible.',
+                  value: prefs.facebookIssue,
+                  onChanged: (v) =>
+                      _setPreferences(prefs.copyWith(facebookIssue: v)),
+                ),
+                  ],
+                ),
               ),
             ],
           ),
