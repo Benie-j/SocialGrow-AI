@@ -23,6 +23,9 @@ class _StudioPageState extends State<StudioPage> {
   String? _workspaceName;
   String? _selectedPageId;
   String? _currentPostId;
+  String? _currentImageUrl;
+  String? _currentImageCredit;
+  String? _currentImageSourceUrl;
   bool _canDelete = false;
   String? _error;
   bool _loading = true;
@@ -63,7 +66,7 @@ class _StudioPageState extends State<StudioPage> {
           .order('page_name');
       final posts = await _client
           .from('posts')
-          .select('id,title,body,status,content_type,created_at,scheduled_at,published_at,error_message,meta_post_id,facebook_page_id')
+          .select('id,title,body,status,content_type,image_url,image_credit,source_urls,created_at,scheduled_at,published_at,error_message,meta_post_id,facebook_page_id')
           .eq('workspace_id', access.workspaceId)
           .order('updated_at', ascending: false)
           .limit(60);
@@ -127,7 +130,57 @@ class _StudioPageState extends State<StudioPage> {
       setState(() {
         _editor.text = content.trim();
         _currentPostId = null;
+        _currentImageUrl = null;
+        _currentImageCredit = null;
+        _currentImageSourceUrl = null;
       });
+
+      // La génération du texte reste acquise même si l'image échoue.
+      try {
+        final imageResponse = await _client.functions.invoke(
+          'studio-generate-image',
+          body: {
+            'workspace_id': _workspaceId,
+            'topic': topic,
+            'content': content.trim(),
+          },
+        );
+
+        final imageData = imageResponse.data;
+
+        if (imageData is! Map || imageData['error'] != null) {
+          throw Exception(
+            imageData is Map
+                ? (imageData['message'] ?? imageData['error'])
+                : 'Réponse image invalide.',
+          );
+        }
+
+        final imageUrl = imageData['image_url'];
+        if (imageUrl is! String || !imageUrl.startsWith('https://')) {
+          throw Exception('URL de l’image invalide.');
+        }
+
+        if (!mounted) return;
+        setState(() {
+          _currentImageUrl = imageUrl;
+          _currentImageCredit = imageData['image_credit']?.toString();
+          _currentImageSourceUrl = imageData['source_url']?.toString();
+        });
+
+        _message(
+          imageData['mode'] == 'generated'
+              ? 'Image générée par JUN AI.'
+              : 'Image libre de droits récupérée.',
+        );
+      } catch (imageError) {
+        if (mounted) {
+          _message(
+            'Texte créé, mais image indisponible : '
+            '${_readableError(imageError)}',
+          );
+        }
+      }
     } catch (e) {
       if (mounted) setState(() => _error = _readableError(e));
     } finally {
@@ -351,7 +404,12 @@ class _StudioPageState extends State<StudioPage> {
           'created_by': user.id,
           'title': title,
           'body': body,
-          'content_type': 'text',
+          'content_type': _currentImageUrl == null ? 'text' : 'image',
+          'image_url': _currentImageUrl,
+          'image_credit': _currentImageCredit,
+          'source_urls': [
+            if (_currentImageSourceUrl != null) _currentImageSourceUrl,
+          ],
           'status': 'draft',
           'source': 'ai',
         }).select('id').single();
@@ -360,7 +418,12 @@ class _StudioPageState extends State<StudioPage> {
         await _client.from('posts').update({
           'title': title,
           'body': body,
-          'content_type': 'text',
+          'content_type': _currentImageUrl == null ? 'text' : 'image',
+          'image_url': _currentImageUrl,
+          'image_credit': _currentImageCredit,
+          'source_urls': [
+            if (_currentImageSourceUrl != null) _currentImageSourceUrl,
+          ],
           'status': 'draft',
           'error_message': null,
           'updated_at': DateTime.now().toUtc().toIso8601String(),
@@ -452,7 +515,7 @@ class _StudioPageState extends State<StudioPage> {
     if (_workspaceId == null) return;
     final rows = await _client
         .from('posts')
-        .select('id,title,body,status,content_type,created_at,scheduled_at,published_at,error_message,meta_post_id,facebook_page_id')
+        .select('id,title,body,status,content_type,image_url,image_credit,source_urls,created_at,scheduled_at,published_at,error_message,meta_post_id,facebook_page_id')
         .eq('workspace_id', _workspaceId!)
         .order('updated_at', ascending: false)
         .limit(60);
@@ -466,6 +529,22 @@ class _StudioPageState extends State<StudioPage> {
       _error = post['status'] == 'failed' ? post['error_message']?.toString() : null;
       _idea.text = (post['title'] ?? '').toString();
       _editor.text = (post['body'] ?? '').toString();
+
+      final image = post['image_url']?.toString();
+      _currentImageUrl = post['content_type'] == 'image' &&
+              image != null &&
+              image.startsWith('https://')
+          ? image
+          : null;
+
+      _currentImageCredit = post['image_credit']?.toString();
+
+      final sources = post['source_urls'];
+      _currentImageSourceUrl =
+          sources is List && sources.isNotEmpty
+              ? sources.first.toString()
+              : null;
+
       final pageId = post['facebook_page_id']?.toString();
       if (pageId != null && _pages.any((p) => p['id'].toString() == pageId)) {
         _selectedPageId = pageId;
@@ -483,6 +562,9 @@ class _StudioPageState extends State<StudioPage> {
       if (_currentPostId == id) {
         setState(() {
           _currentPostId = null;
+          _currentImageUrl = null;
+          _currentImageCredit = null;
+          _currentImageSourceUrl = null;
           _editor.clear();
           _idea.clear();
         });
@@ -639,6 +721,46 @@ class _StudioPageState extends State<StudioPage> {
                     ),
                   ],
                 ),
+                if (_currentImageUrl != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      _currentImageUrl!,
+                      height: 190,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox(
+                        height: 70,
+                        child: Center(
+                          child: Text('Image indisponible.'),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (_currentImageCredit != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        _currentImageCredit!,
+                        style: TextStyle(
+                          color: p.textSecondary,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () => setState(() {
+                        _currentImageUrl = null;
+                        _currentImageCredit = null;
+                        _currentImageSourceUrl = null;
+                      }),
+                      icon: const Icon(Icons.hide_image_outlined),
+                      label: const Text('Retirer l’image'),
+                    ),
+                  ),
+                ],
                 TextField(
                   controller: _editor,
                   minLines: 9,
