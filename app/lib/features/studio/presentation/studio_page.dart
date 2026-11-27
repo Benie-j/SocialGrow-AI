@@ -31,6 +31,7 @@ class _StudioPageState extends State<StudioPage> {
   bool _publishing = false;
   int _view = 0;
   String _filter = 'all';
+  String _format = 'post';
   List<Map<String, dynamic>> _pages = [];
   List<Map<String, dynamic>> _posts = [];
 
@@ -105,7 +106,11 @@ class _StudioPageState extends State<StudioPage> {
       // Aucun ton, objectif, modèle ou réseau n'est choisi dans le Studio.
       final response = await _client.functions.invoke(
         'groq-generate-content',
-        body: {'workspace_id': _workspaceId, 'topic': topic},
+        body: {
+          'workspace_id': _workspaceId,
+          'topic': topic,
+          'format': _format,
+        },
       );
       final data = response.data;
       if (data is! Map) throw Exception('Réponse du générateur invalide.');
@@ -365,6 +370,40 @@ class _StudioPageState extends State<StudioPage> {
                   alignLabelWithHint: true,
                   border: OutlineInputBorder(),
                 ),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                initialValue: _format,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Format de création',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'post',
+                    child: Text('Publication classique'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'carousel',
+                    child: Text('Carrousel — diapositives'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'video_script',
+                    child: Text('Vidéo — scénario et voix off'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'ad',
+                    child: Text('Annonce publicitaire'),
+                  ),
+                ],
+                onChanged: _generating
+                    ? null
+                    : (value) {
+                        if (value != null) {
+                          setState(() => _format = value);
+                        }
+                      },
               ),
               const SizedBox(height: 10),
               SizedBox(

@@ -43,6 +43,19 @@ Deno.serve(async (req: Request) => {
 
     workspaceId = String(body.workspace_id ?? "");
     const topic = String(body.topic ?? "").trim();
+    const format = String(body.format ?? "post");
+
+    const formatInstructions: Record<string, string> = {
+      post: "Rédige une publication classique, claire et engageante.",
+      carousel: "Produis un carrousel textuel structuré en diapositives numérotées. Pour chaque diapositive, indique un titre et un texte court. Termine par une conclusion et un appel à l'action si pertinent.",
+      video_script: "Produis un scénario vidéo avec scènes numérotées, indications visuelles et texte de voix off. Prévois une accroche, un développement et une conclusion.",
+      ad: "Produis une annonce publicitaire avec accroche, proposition de valeur fondée uniquement sur les informations fournies, texte principal et appel à l'action pertinent.",
+    };
+
+    if (!Object.prototype.hasOwnProperty.call(formatInstructions, format)) {
+      return json({ error: "invalid_format", message: "Format de création non pris en charge." }, 400);
+    }
+
     if (!/^[0-9a-f-]{36}$/i.test(workspaceId)) return json({ error: "invalid_workspace", message: "Espace invalide." }, 400);
     if (topic.length < 3 || topic.length > 1200) return json({ error: "invalid_topic", message: "Le sujet doit contenir entre 3 et 1 200 caractères." }, 400);
 
@@ -87,7 +100,7 @@ Deno.serve(async (req: Request) => {
     const warmth = Math.max(1, Math.min(10, Number(strategy.voice_warmth ?? 5)));
 
     const systemPrompt = [
-      "Tu es le rédacteur social media de JUN AI. Rédige une publication prête à relire, pas une analyse.",
+      "Tu es le directeur de création social media de JUN AI. Produis un contenu directement exploitable dans le format demandé.",
       "Réponds dans la langue demandée. N'invente aucun chiffre, témoignage, résultat ou caractéristique produit.",
       "Respecte strictement le sujet et l'objectif. N'ajoute pas de faits non fournis.",
       `Réseau : Facebook. Objectif enregistré : ${objective}. Ton enregistré : ${tone}. Langue : ${language}.`,
@@ -102,7 +115,8 @@ Deno.serve(async (req: Request) => {
       `Formules interdites : ${banned}.`,
       `Hashtags : ${pub.hashtags_enabled === false ? "ne pas ajouter" : "oui, maximum " + String(pub.max_hashtags ?? 3)}.`,
       `Appel à l'action : ${pub.cta_enabled === false ? "non" : "oui si pertinent"}.`,
-      "Format de sortie : uniquement le texte de la publication, avec paragraphes et hashtags si adaptés.",
+      `Format demandé : ${format}. ${formatInstructions[format]}`,
+      "Respecte la structure du format demandé. N’ajoute pas de commentaire sur ta méthode.",
     ].join("\n");
 
     const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
